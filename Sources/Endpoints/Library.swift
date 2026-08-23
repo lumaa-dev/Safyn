@@ -38,7 +38,7 @@ public enum Library: NafynEndpoint {
 	/// List every album the requesting user owns at least one track from, aggregated from their library. Paginated.
 	///
 	/// Returns `[`` AlbumRow``]`. The spec doesn't detail a pagination envelope for this endpoint (unlike
-	/// ``all``), so this decodes as a bare array; revisit against a live server if that turns out wrong.
+	/// ``all(page:limit:)``), so this decodes as a bare array; revisit against a live server if that turns out wrong.
 	/// - Parameters:
 	///   - limit: Maximum number of results to return.
 	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
@@ -68,7 +68,7 @@ public enum Library: NafynEndpoint {
 	/// List every track in the requesting user's library. Paginated.
 	///
 	/// Returns `[`` MediaRow``]`. The spec doesn't detail a pagination envelope for this endpoint (unlike
-	/// ``all``), so this decodes as a bare array; revisit against a live server if that turns out wrong.
+	/// ``all(page:limit:)``), so this decodes as a bare array; revisit against a live server if that turns out wrong.
 	/// - Parameters:
 	///   - limit: Maximum number of results to return.
 	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.

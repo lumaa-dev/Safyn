@@ -4,10 +4,10 @@ A Swift client for the Nafyn API — self-hosted music library and Soulseek-down
 
 ## Overview
 
-Safyn wraps every Nafyn endpoint in a small set of `enum`s, one per API category (``Album``, ``Auth``,
-``Library``, ``Playlist``, ``Request``, ``Search``, ``Settings``, ``Track``, ``User``, ``Users``), and
-executes them through a single ``NafynServer``. Because Nafyn is typically self-hosted, you first
-validate a server's URL into a ``NafynInstance`` before you can talk to it:
+Safyn wraps every Nafyn endpoint in a small set of `enum`s, one per API category (``Album``, ``Artist``,
+``Auth``, ``Library``, ``Playlist``, ``Request``, ``Search``, ``Settings``, ``Track``, ``User``,
+``Users``), and executes them through a single ``NafynServer``. Because Nafyn is typically self-hosted,
+you first validate a server's URL into a ``NafynInstance`` before you can talk to it:
 
 ```swift
 import Safyn
@@ -38,6 +38,7 @@ ranges, `.local` mDNS hosts); anything else must use `https://`.
 ### Endpoints
 
 - ``Album``
+- ``Artist``
 - ``Auth``
 - ``Library``
 - ``Playlist``

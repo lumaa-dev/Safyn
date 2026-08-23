@@ -56,3 +56,25 @@ For endpoints that return binary data (audio streams, cover art, avatars) use
 ```swift
 let audio: Data = try await server.sendRaw(Library.stream(id: someTrackId))
 ```
+
+## Page through a list endpoint
+
+List endpoints take optional pagination parameters. Most (``Library/tracks(limit:offset:)``,
+``Library/albums(limit:offset:)``, ``Playlist/list(limit:offset:)``, ``Playlist/tracks(pid:limit:offset:)``,
+``Request/all(limit:offset:)``, ``Users/all(limit:offset:)``) use `limit`/`offset`:
+
+```swift
+let firstPage: [MediaRow] = try await server.send(Library.tracks(limit: 20, offset: 0))
+let secondPage: [MediaRow] = try await server.send(Library.tracks(limit: 20, offset: 20))
+```
+
+``Library/all(page:limit:)`` is the one endpoint whose spec documents a full pagination envelope, so it
+takes `page`/`limit` instead and returns a ``PaginatedResponse`` with `items`, `page`, `limit`, `total`,
+and `hasMore`:
+
+```swift
+let entries: PaginatedResponse<LibraryMediaEntry> = try await server.send(Library.all(page: 1, limit: 20))
+if entries.hasMore {
+    let next: PaginatedResponse<LibraryMediaEntry> = try await server.send(Library.all(page: 2, limit: 20))
+}
+```
