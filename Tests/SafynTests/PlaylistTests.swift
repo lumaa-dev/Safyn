@@ -17,8 +17,26 @@ struct PlaylistTests {
 	@Test("Listing the authenticated user's playlists")
 	func list() async throws {
 		let server = try await authenticatedServer()
-		let playlists: [PlaylistRow] = try await server.send(Playlist.list)
+		let playlists: [PlaylistRow] = try await server.send(Playlist.list())
 		#expect(playlists.count >= 0)
+	}
+
+	@Test("Listing the authenticated user's playlists with a limit and offset")
+	func listPaginated() async throws {
+		let server = try await authenticatedServer()
+		let firstPage: [PlaylistRow] = try await server.send(Playlist.list(limit: 2, offset: 0))
+		let secondPage: [PlaylistRow] = try await server.send(Playlist.list(limit: 2, offset: 2))
+		#expect(firstPage.count <= 2)
+		#expect(secondPage.count <= 2)
+	}
+
+	@Test("Listing a playlist's tracks with a limit and offset")
+	func tracksPaginated() async throws {
+		let server = try await authenticatedServer()
+		let firstPage: [PlaylistEntry] = try await server.send(Playlist.tracks(pid: "some-playlist-id", limit: 2, offset: 0))
+		let secondPage: [PlaylistEntry] = try await server.send(Playlist.tracks(pid: "some-playlist-id", limit: 2, offset: 2))
+		#expect(firstPage.count <= 2)
+		#expect(secondPage.count <= 2)
 	}
 
 	@Test("Listing every playlist")

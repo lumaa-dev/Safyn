@@ -31,7 +31,16 @@ struct RequestTests {
 	@Test("Listing every download request")
 	func all() async throws {
 		let server = try await authenticatedServer()
-		let requests: [NafynRequest] = try await server.send(Request.all)
+		let requests: [NafynRequest] = try await server.send(Request.all())
 		#expect(requests.count >= 0)
+	}
+
+	@Test("Listing download requests with a limit and offset")
+	func allPaginated() async throws {
+		let server = try await authenticatedServer()
+		let firstPage: [NafynRequest] = try await server.send(Request.all(limit: 2, offset: 0))
+		let secondPage: [NafynRequest] = try await server.send(Request.all(limit: 2, offset: 2))
+		#expect(firstPage.count <= 2)
+		#expect(secondPage.count <= 2)
 	}
 }

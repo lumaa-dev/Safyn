@@ -35,15 +35,22 @@ public enum Library: NafynEndpoint {
 	///   - range: A standard HTTP byte-range value, e.g. `"bytes=0-1023"`.
 	case stream(id: String, token: String? = nil, range: String? = nil)
 
-	/// List every album the requesting user owns at least one track from, aggregated from their library.
+	/// List every album the requesting user owns at least one track from, aggregated from their library. Paginated.
 	///
-	/// Returns `[`` AlbumRow``]`.
-	case albums
+	/// Returns `[`` AlbumRow``]`. The spec doesn't detail a pagination envelope for this endpoint (unlike
+	/// ``all``), so this decodes as a bare array; revisit against a live server if that turns out wrong.
+	/// - Parameters:
+	///   - limit: Maximum number of results to return.
+	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
+	case albums(limit: Int? = nil, offset: Int? = nil)
 
-	/// List every media row across every user's library, with owner usernames. Requires `manageMusic`.
+	/// List every media row across every user's library, with owner usernames. Paginated. Requires `manageMusic`.
 	///
-	/// Returns `[`` LibraryMediaEntry``]`.
-	case all
+	/// Returns ``PaginatedResponse``<``LibraryMediaEntry``>.
+	/// - Parameters:
+	///   - page: Page number, 1-indexed. Defaults to `1` server-side when omitted.
+	///   - limit: Maximum number of results per page.
+	case all(page: Int? = nil, limit: Int? = nil)
 
 	/// List the requesting user's recently played tracks/albums/playlists, most recent first.
 	///
@@ -58,10 +65,14 @@ public enum Library: NafynEndpoint {
 	///   - refId: Media ID (track), release-group ID (album), or playlist ID.
 	case recordRecentlyPlayed(type: RecentEntryKind, refId: String)
 
-	/// List every track in the requesting user's library.
+	/// List every track in the requesting user's library. Paginated.
 	///
-	/// Returns `[`` MediaRow``]`.
-	case tracks
+	/// Returns `[`` MediaRow``]`. The spec doesn't detail a pagination envelope for this endpoint (unlike
+	/// ``all``), so this decodes as a bare array; revisit against a live server if that turns out wrong.
+	/// - Parameters:
+	///   - limit: Maximum number of results to return.
+	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
+	case tracks(limit: Int? = nil, offset: Int? = nil)
 
 	public var path: String {
 		switch self {
@@ -100,6 +111,24 @@ public enum Library: NafynEndpoint {
 			case .stream(_, let token, _):
 				guard let token else { return [] }
 				return [URLQueryItem(name: "token", value: token)]
+			case .albums(let limit, let offset), .tracks(let limit, let offset):
+				var items: [URLQueryItem] = []
+				if let limit {
+					items.append(URLQueryItem(name: "limit", value: String(limit)))
+				}
+				if let offset {
+					items.append(URLQueryItem(name: "offset", value: String(offset)))
+				}
+				return items
+			case .all(let page, let limit):
+				var items: [URLQueryItem] = []
+				if let page {
+					items.append(URLQueryItem(name: "page", value: String(page)))
+				}
+				if let limit {
+					items.append(URLQueryItem(name: "limit", value: String(limit)))
+				}
+				return items
 			default:
 				return []
 		}

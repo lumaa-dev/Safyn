@@ -10,22 +10,49 @@ struct LibraryTests {
 	@Test("Listing every track in the authenticated user's library")
 	func tracks() async throws {
 		let server = try await authenticatedServer()
-		let tracks: [MediaRow] = try await server.send(Library.tracks)
+		let tracks: [MediaRow] = try await server.send(Library.tracks())
 		#expect(tracks.count >= 0)
+	}
+
+	@Test("Listing library tracks with a limit and offset")
+	func tracksPaginated() async throws {
+		let server = try await authenticatedServer()
+		let firstPage: [MediaRow] = try await server.send(Library.tracks(limit: 2, offset: 0))
+		let secondPage: [MediaRow] = try await server.send(Library.tracks(limit: 2, offset: 5))
+		#expect(firstPage.count <= 2)
+		#expect(secondPage.count <= 2)
 	}
 
 	@Test("Listing every album in the authenticated user's library")
 	func albums() async throws {
 		let server = try await authenticatedServer()
-		let albums: [AlbumRow] = try await server.send(Library.albums)
+		let albums: [AlbumRow] = try await server.send(Library.albums())
 		#expect(albums.count >= 0)
+	}
+
+	@Test("Listing library albums with a limit and offset")
+	func albumsPaginated() async throws {
+		let server = try await authenticatedServer()
+		let firstPage: [AlbumRow] = try await server.send(Library.albums(limit: 2, offset: 0))
+		let secondPage: [AlbumRow] = try await server.send(Library.albums(limit: 2, offset: 5))
+		#expect(firstPage.count <= 2)
+		#expect(secondPage.count <= 2)
 	}
 
 	@Test("Listing every library entry across every user")
 	func all() async throws {
 		let server = try await authenticatedServer()
-		let entries: [LibraryMediaEntry] = try await server.send(Library.all)
-		#expect(entries.count >= 0)
+		let entries: PaginatedResponse<LibraryMediaEntry> = try await server.send(Library.all())
+		#expect(entries.items.count >= 0)
+	}
+
+	@Test("Listing library entries across every user with a page and limit")
+	func allPaginated() async throws {
+		let server = try await authenticatedServer()
+		let firstPage: PaginatedResponse<LibraryMediaEntry> = try await server.send(Library.all(page: 1, limit: 2))
+		let secondPage: PaginatedResponse<LibraryMediaEntry> = try await server.send(Library.all(page: 2, limit: 2))
+		#expect(firstPage.items.count <= 2)
+		#expect(secondPage.items.count <= 2)
 	}
 
 	@Test("Fetching lyrics for a library track")

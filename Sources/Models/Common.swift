@@ -240,6 +240,37 @@ public enum LyricsProvider: String, Codable, Sendable, Hashable {
 	case cache
 }
 
+/// A page of items from a paginated list endpoint, alongside the pagination cursor state.
+///
+/// Used by endpoints whose OpenAPI schema documents this exact envelope shape (e.g. `Library.all`).
+/// Some other "paginated" list endpoints (e.g. `Library.albums`, `Library.tracks`, `Playlist.list`)
+/// leave their response schema untyped in the spec — see the "Known spec ambiguities" section of
+/// this package's documentation before assuming they use this same envelope.
+public struct PaginatedResponse<Item: Codable & Sendable & Hashable>: Codable, Sendable, Hashable {
+	/// This page's items.
+	public let items: [Item]
+
+	/// The current page number.
+	public let page: Int
+
+	/// The maximum number of items per page.
+	public let limit: Int
+
+	/// The total number of items across every page.
+	public let total: Int
+
+	/// Whether there are more pages beyond this one.
+	public let hasMore: Bool
+
+	public init(items: [Item], page: Int, limit: Int, total: Int, hasMore: Bool) {
+		self.items = items
+		self.page = page
+		self.limit = limit
+		self.total = total
+		self.hasMore = hasMore
+	}
+}
+
 /// A tri-state value for `PATCH` request fields that distinguish "leave unchanged", "clear to null", and "set to a new value".
 ///
 /// Plain `Optional` can't express this over the wire: `JSONEncoder` omits `nil` properties entirely,

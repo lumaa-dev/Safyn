@@ -82,15 +82,30 @@ public enum Playlist: NafynEndpoint {
 	/// - Parameter eid: Playlist entry ID.
 	case removeTrack(pid: String, eid: String)
 
+	/// List a playlist's tracks, paginated. Further pages beyond ``PlaylistDetail``'s first page.
+	///
+	/// Public playlists are readable by anonymous visitors; private ones require owner/member access.
+	/// The spec leaves this endpoint's response schema untyped (no pagination params are documented
+	/// either), but it's presumably shaped like ``PlaylistDetail``'s `entries` field — an array of
+	/// ``PlaylistEntry`` — or a page of one; revisit against a live server if that turns out wrong.
+	/// - Parameters:
+	///   - limit: Maximum number of results to return.
+	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
+	case tracks(pid: String, limit: Int? = nil, offset: Int? = nil)
+
 	/// List every playlist regardless of owner/membership. Requires `manageMusic`.
 	///
 	/// Returns `[`` PlaylistRow``]`.
 	case all
 
-	/// List playlists owned by, or shared with, the requesting user.
+	/// List playlists owned by, or shared with, the requesting user. Paginated.
 	///
-	/// Returns `[`` PlaylistRow``]`.
-	case list
+	/// Returns `[`` PlaylistRow``]`. The spec doesn't detail a pagination envelope for this endpoint,
+	/// so this decodes as a bare array; revisit against a live server if that turns out wrong.
+	/// - Parameters:
+	///   - limit: Maximum number of results to return.
+	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
+	case list(limit: Int? = nil, offset: Int? = nil)
 
 	/// Create a new playlist owned by the requesting user.
 	///
@@ -114,7 +129,7 @@ public enum Playlist: NafynEndpoint {
 				return "/api/v1/playlist/\(pid)/members/\(uid)"
 			case .reorder(let pid, _):
 				return "/api/v1/playlist/\(pid)/order"
-			case .addTracks(let pid, _):
+			case .addTracks(let pid, _), .tracks(let pid, _, _):
 				return "/api/v1/playlist/\(pid)/tracks"
 			case .removeTrack(let pid, let eid):
 				return "/api/v1/playlist/\(pid)/tracks/\(eid)"
@@ -129,7 +144,7 @@ public enum Playlist: NafynEndpoint {
 		switch self {
 			case .delete, .deleteImage, .removeMember, .removeTrack:
 				return [.delete]
-			case .get, .image, .all, .list:
+			case .get, .image, .all, .list, .tracks:
 				return [.get]
 			case .update:
 				return [.patch]
@@ -143,6 +158,15 @@ public enum Playlist: NafynEndpoint {
 			case .image(_, let token):
 				guard let token else { return [] }
 				return [URLQueryItem(name: "token", value: token)]
+			case .tracks(_, let limit, let offset), .list(let limit, let offset):
+				var items: [URLQueryItem] = []
+				if let limit {
+					items.append(URLQueryItem(name: "limit", value: String(limit)))
+				}
+				if let offset {
+					items.append(URLQueryItem(name: "offset", value: String(offset)))
+				}
+				return items
 			default:
 				return []
 		}

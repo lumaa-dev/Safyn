@@ -70,6 +70,39 @@ public struct RegistrationOpenResponse: Codable, Sendable, Hashable {
 	}
 }
 
+/// The result of `User.createApiToken(name:)`: a newly created API token, including its plaintext value.
+///
+/// The `token` field is only ever returned here, at creation time — it can't be retrieved again
+/// afterward. Compare with ``ApiTokenSummary``, which omits it.
+public struct CreateApiTokenResponse: Codable, Sendable, Hashable {
+	/// The token's ID.
+	public let id: String
+
+	/// The ID of the user this token belongs to.
+	public let userId: String
+
+	/// A user-assigned label for this token, if one was set.
+	public let name: String?
+
+	/// The plaintext token value. Shown only this once.
+	public let token: String
+
+	/// When this token was created, as a Unix timestamp in milliseconds.
+	public let createdAt: Int64
+
+	/// When this token was last used, as a Unix timestamp in milliseconds, if it's been used.
+	public let lastUsedAt: Int64?
+
+	public init(id: String, userId: String, name: String?, token: String, createdAt: Int64, lastUsedAt: Int64?) {
+		self.id = id
+		self.userId = userId
+		self.name = name
+		self.token = token
+		self.createdAt = createdAt
+		self.lastUsedAt = lastUsedAt
+	}
+}
+
 /// The `/api/_nafyn` health check response, used internally by ``NafynInstance/connect(to:session:)``.
 struct NafynPingResponse: Codable, Sendable {
 	struct ServerInfo: Codable, Sendable {

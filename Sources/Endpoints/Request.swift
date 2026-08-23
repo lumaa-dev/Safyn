@@ -22,10 +22,15 @@ public enum Request: NafynEndpoint {
 	/// Returns ``NafynRequest``.
 	case updateStatus(requestId: String, status: RequestStatus)
 
-	/// List every download request across every user. Requires `manageRequests`.
+	/// List download requests, paginated. Users with `manageRequests` get every request across every
+	/// user; others get only their own.
 	///
-	/// Returns `[`` NafynRequest``]`.
-	case all
+	/// Returns `[`` NafynRequest``]`. The spec doesn't detail a pagination envelope for this endpoint,
+	/// so this decodes as a bare array; revisit against a live server if that turns out wrong.
+	/// - Parameters:
+	///   - limit: Maximum number of results to return.
+	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
+	case all(limit: Int? = nil, offset: Int? = nil)
 
 	public var path: String {
 		switch self {
@@ -46,6 +51,22 @@ public enum Request: NafynEndpoint {
 				return [.post]
 			case .get, .all:
 				return [.get]
+		}
+	}
+
+	public var queries: [URLQueryItem] {
+		switch self {
+			case .all(let limit, let offset):
+				var items: [URLQueryItem] = []
+				if let limit {
+					items.append(URLQueryItem(name: "limit", value: String(limit)))
+				}
+				if let offset {
+					items.append(URLQueryItem(name: "offset", value: String(offset)))
+				}
+				return items
+			default:
+				return []
 		}
 	}
 

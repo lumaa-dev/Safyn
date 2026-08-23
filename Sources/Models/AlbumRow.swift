@@ -31,7 +31,10 @@ public struct AlbumRow: Codable, Sendable, Hashable {
 	/// The number of owned tracks from this album.
 	public let trackCount: Int
 
-	public init(id: String, mbId: String, title: String, artistName: String, artistMbid: String?, coverArt: String?, releaseDate: Int64?, duration: Double, trackCount: Int) {
+	/// When the earliest owned track from this album was added, as a Unix timestamp in milliseconds.
+	public let addedAt: Int64
+
+	public init(id: String, mbId: String, title: String, artistName: String, artistMbid: String?, coverArt: String?, releaseDate: Int64?, duration: Double, trackCount: Int, addedAt: Int64) {
 		self.id = id
 		self.mbId = mbId
 		self.title = title
@@ -41,10 +44,16 @@ public struct AlbumRow: Codable, Sendable, Hashable {
 		self.releaseDate = releaseDate
 		self.duration = duration
 		self.trackCount = trackCount
+		self.addedAt = addedAt
 	}
 
 	/// `releaseDate` converted to a `Date`, if known.
 	public var releaseDateValue: Date? {
 		releaseDate.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+	}
+
+	/// `addedAt` converted to a `Date`.
+	public var addedAtDate: Date {
+		Date(timeIntervalSince1970: TimeInterval(addedAt) / 1000)
 	}
 }

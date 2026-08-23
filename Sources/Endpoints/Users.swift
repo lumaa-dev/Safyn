@@ -34,10 +34,14 @@ public enum Users: NafynEndpoint {
 	///   - mimeType: The image's MIME type. Defaults to `"image/webp"`.
 	case setAvatar(id: String, data: Data, filename: String = "avatar.webp", mimeType: String = "image/webp")
 
-	/// List every user account. Requires `manageAccounts`.
+	/// List every user account, paginated. Requires `manageAccounts`.
 	///
-	/// Returns `[`` NafynUser``]`.
-	case all
+	/// Returns `[`` NafynUser``]`. The spec doesn't detail a pagination envelope for this endpoint,
+	/// so this decodes as a bare array; revisit against a live server if that turns out wrong.
+	/// - Parameters:
+	///   - limit: Maximum number of results to return.
+	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
+	case all(limit: Int? = nil, offset: Int? = nil)
 
 	public var path: String {
 		switch self {
@@ -60,6 +64,22 @@ public enum Users: NafynEndpoint {
 				return [.post]
 			case .all:
 				return [.get]
+		}
+	}
+
+	public var queries: [URLQueryItem] {
+		switch self {
+			case .all(let limit, let offset):
+				var items: [URLQueryItem] = []
+				if let limit {
+					items.append(URLQueryItem(name: "limit", value: String(limit)))
+				}
+				if let offset {
+					items.append(URLQueryItem(name: "offset", value: String(offset)))
+				}
+				return items
+			default:
+				return []
 		}
 	}
 

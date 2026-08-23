@@ -43,6 +43,25 @@ public enum User: NafynEndpoint {
 	///   - discogs: Up to 50 characters. Use `.clear` to unlink, `.value(_:)` to set, or leave `.unset` to not change it.
 	case updateProfile(displayName: String? = nil, lastFm: Patchable<String> = .unset, discogs: Patchable<String> = .unset)
 
+	/// List the currently authenticated user's own API tokens (app passwords, currently used for
+	/// Subsonic auth). The token value itself is never returned here — only at creation time.
+	///
+	/// Returns `[`` ApiTokenSummary``]`.
+	case apiTokens
+
+	/// Create a new API token (app password) for the currently authenticated user — currently used for
+	/// Subsonic auth. The plaintext token value is only ever returned in this response; it can't be
+	/// retrieved again afterward.
+	///
+	/// Returns ``CreateApiTokenResponse``.
+	/// - Parameter name: An optional user-assigned label for the token.
+	case createApiToken(name: String? = nil)
+
+	/// Revoke one of the currently authenticated user's own API tokens.
+	///
+	/// - Parameter id: API token ID.
+	case deleteApiToken(id: String)
+
 	public var path: String {
 		switch self {
 			case .avatar(let id, _):
@@ -53,16 +72,20 @@ public enum User: NafynEndpoint {
 				return "/api/v1/user/me"
 			case .updateProfile:
 				return "/api/v1/user/profile"
+			case .apiTokens, .createApiToken:
+				return "/api/v1/user/tokens"
+			case .deleteApiToken(let id):
+				return "/api/v1/user/tokens/\(id)"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .avatar, .me:
+			case .avatar, .me, .apiTokens:
 				return [.get]
-			case .deleteAvatar:
+			case .deleteAvatar, .deleteApiToken:
 				return [.delete]
-			case .setAvatar:
+			case .setAvatar, .createApiToken:
 				return [.post]
 			case .updateProfile:
 				return [.patch]
@@ -83,6 +106,8 @@ public enum User: NafynEndpoint {
 		switch self {
 			case .updateProfile(let displayName, let lastFm, let discogs):
 				return AnyEncodable(UpdateMyProfileRequest(displayName: displayName, lastFm: lastFm, discogs: discogs))
+			case .createApiToken(let name):
+				return AnyEncodable(CreateApiTokenRequest(name: name))
 			default:
 				return nil
 		}
@@ -96,6 +121,10 @@ public enum User: NafynEndpoint {
 				return nil
 		}
 	}
+}
+
+struct CreateApiTokenRequest: Encodable, Sendable {
+	let name: String?
 }
 
 struct UpdateMyProfileRequest: Encodable, Sendable {

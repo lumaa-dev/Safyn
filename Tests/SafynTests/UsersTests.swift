@@ -10,14 +10,23 @@ struct UsersTests {
 	@Test("Listing every user account")
 	func all() async throws {
 		let server = try await authenticatedServer()
-		let users: [NafynUser] = try await server.send(Users.all)
+		let users: [NafynUser] = try await server.send(Users.all())
 		#expect(!users.isEmpty)
+	}
+
+	@Test("Listing user accounts with a limit and offset")
+	func allPaginated() async throws {
+		let server = try await authenticatedServer()
+		let firstPage: [NafynUser] = try await server.send(Users.all(limit: 2, offset: 0))
+		let secondPage: [NafynUser] = try await server.send(Users.all(limit: 2, offset: 2))
+		#expect(firstPage.count <= 2)
+		#expect(secondPage.count <= 2)
 	}
 
 	@Test("Updating another user's account fields")
 	func update() async throws {
 		let server = try await authenticatedServer()
-		let users: [NafynUser] = try await server.send(Users.all)
+		let users: [NafynUser] = try await server.send(Users.all())
 		guard let target = users.first else {
 			Issue.record("No users to update")
 			return
@@ -29,7 +38,7 @@ struct UsersTests {
 	@Test("Uploading an avatar for another user")
 	func setAvatar() async throws {
 		let server = try await authenticatedServer()
-		let users: [NafynUser] = try await server.send(Users.all)
+		let users: [NafynUser] = try await server.send(Users.all())
 		guard let target = users.first else {
 			Issue.record("No users to update")
 			return
