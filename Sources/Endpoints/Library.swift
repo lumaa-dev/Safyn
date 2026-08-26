@@ -35,6 +35,13 @@ public enum Library: NafynEndpoint {
 	///   - range: A standard HTTP byte-range value, e.g. `"bytes=0-1023"`.
 	case stream(id: String, token: String? = nil, range: String? = nil)
 
+	/// Get one album's metadata plus only the tracks the requesting user owns from it - used by the library album
+	/// view (Play/Shuffle, no Request buttons, hides tracks the user doesn't have).
+	///
+	/// Returns ``LibraryAlbumResponse``.
+	/// - Parameter id: MusicBrainz release-group ID.
+	case album(id: String)
+
 	/// List every album the requesting user owns at least one track from, aggregated from their library. Paginated.
 	///
 	/// Returns `[`` AlbumRow``]`. The spec doesn't detail a pagination envelope for this endpoint (unlike
@@ -65,6 +72,13 @@ public enum Library: NafynEndpoint {
 	///   - refId: Media ID (track), release-group ID (album), or playlist ID.
 	case recordRecentlyPlayed(type: RecentEntryKind, refId: String)
 
+	/// Get one track the requesting user owns, by Nafyn media ID - used by the library track view (Play, no Request
+	/// button).
+	///
+	/// Returns ``MediaRow``.
+	/// - Parameter id: Nafyn's internal media ID.
+	case track(id: String)
+
 	/// List every track in the requesting user's library. Paginated.
 	///
 	/// Returns `[`` MediaRow``]`. The spec doesn't detail a pagination envelope for this endpoint (unlike
@@ -84,12 +98,16 @@ public enum Library: NafynEndpoint {
 				return "/api/v1/library/\(id)/lyrics"
 			case .stream(let id, _, _):
 				return "/api/v1/library/\(id)/stream"
+			case .album(let id):
+				return "/api/v1/library/album/\(id)"
 			case .albums:
 				return "/api/v1/library/albums"
 			case .all:
 				return "/api/v1/library/all"
 			case .recentlyPlayed, .recordRecentlyPlayed:
 				return "/api/v1/library/recently-played"
+			case .track(let id):
+				return "/api/v1/library/track/\(id)"
 			case .tracks:
 				return "/api/v1/library/tracks"
 		}
@@ -99,7 +117,7 @@ public enum Library: NafynEndpoint {
 		switch self {
 			case .remove, .removeForUser:
 				return [.delete]
-			case .lyrics, .stream, .albums, .all, .recentlyPlayed, .tracks:
+			case .lyrics, .stream, .album, .albums, .all, .recentlyPlayed, .track, .tracks:
 				return [.get]
 			case .recordRecentlyPlayed:
 				return [.post]

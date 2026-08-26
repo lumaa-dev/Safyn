@@ -40,6 +40,20 @@ public struct RemovedWithFileResponse: Codable, Sendable, Hashable {
 	}
 }
 
+/// The result of `Library.album(id:)`: one album's metadata plus only the tracks the requesting user owns from it.
+public struct LibraryAlbumResponse: Codable, Sendable, Hashable {
+	/// The album's metadata.
+	public let album: AlbumRow
+
+	/// The tracks from this album the requesting user owns.
+	public let tracks: [MediaRow]
+
+	public init(album: AlbumRow, tracks: [MediaRow]) {
+		self.album = album
+		self.tracks = tracks
+	}
+}
+
 /// The result of `Library.recordRecentlyPlayed(type:refId:)`.
 public struct RecordedResponse: Codable, Sendable, Hashable {
 	/// Whether the entry was recorded.
