@@ -240,6 +240,31 @@ public enum LyricsProvider: String, Codable, Sendable, Hashable {
 	case cache
 }
 
+/// Where a ``PlayEventInput`` play started from.
+public enum PlayEventSource: String, Codable, Sendable, Hashable {
+	case library
+	case playlist
+	case album
+	case track
+}
+
+/// The status of a ``HighlightReel``'s optional server-rendered MP4.
+public enum ReelStatus: String, Codable, Sendable, Hashable {
+	case none
+	case queued
+	case rendering
+	case ready
+	case failed
+}
+
+/// The kind of entity a ``RankedEntity`` ranks, or that `Insights.top(type:period:week:month:year:)` ranks.
+public enum RankedEntityKind: String, Codable, Sendable, Hashable {
+	case track
+	case album
+	case artist
+	case playlist
+}
+
 /// A page of items from a paginated list endpoint, alongside the pagination cursor state.
 ///
 /// Used by endpoints whose OpenAPI schema documents this exact envelope shape (e.g. `Library.all`).

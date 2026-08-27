@@ -117,6 +117,80 @@ public struct CreateApiTokenResponse: Codable, Sendable, Hashable {
 	}
 }
 
+/// One year's side-by-side totals, from `Insights.compareYears(years:)`.
+public struct YearComparisonEntry: Codable, Sendable, Hashable {
+	/// The year.
+	public let year: Int
+
+	/// Total minutes listened this year.
+	public let totalMinutes: Int
+
+	/// Total plays this year.
+	public let totalPlays: Int
+
+	/// Distinct tracks played this year.
+	public let uniqueTracks: Int
+
+	/// Distinct albums played this year.
+	public let uniqueAlbums: Int
+
+	/// Distinct artists played this year.
+	public let uniqueArtists: Int
+
+	/// Minutes listened per month, 12 entries, January first.
+	public let monthlyMinutes: [Int]
+
+	public init(year: Int, totalMinutes: Int, totalPlays: Int, uniqueTracks: Int, uniqueAlbums: Int, uniqueArtists: Int, monthlyMinutes: [Int]) {
+		self.year = year
+		self.totalMinutes = totalMinutes
+		self.totalPlays = totalPlays
+		self.uniqueTracks = uniqueTracks
+		self.uniqueAlbums = uniqueAlbums
+		self.uniqueArtists = uniqueArtists
+		self.monthlyMinutes = monthlyMinutes
+	}
+}
+
+/// The result of `Insights.ingestEvents(events:token:)`.
+public struct IngestPlayEventsResponse: Codable, Sendable, Hashable {
+	/// The number of events newly written to the store.
+	public let accepted: Int
+
+	/// The number of entries dropped as malformed, duplicated within the batch, or referencing a track outside the user's library.
+	public let rejected: Int
+
+	/// `false` means the batch was accepted and discarded; the client should stop sending events.
+	public let historyEnabled: Bool
+
+	public init(accepted: Int, rejected: Int, historyEnabled: Bool) {
+		self.accepted = accepted
+		self.rejected = rejected
+		self.historyEnabled = historyEnabled
+	}
+}
+
+/// The result of `Insights.deleteHistory()`.
+public struct DeletedResponse: Codable, Sendable, Hashable {
+	/// Whether the data was deleted.
+	public let deleted: Bool
+
+	public init(deleted: Bool) {
+		self.deleted = deleted
+	}
+}
+
+/// The result of `Insights.requestReelVideo(year:)`.
+public struct RequestReelVideoResponse: Codable, Sendable, Hashable {
+	/// The reel's rendering status after the request.
+	///
+	/// Requesting a reel already queued or rendering is a no-op, so this simply reflects the current status.
+	public let reelStatus: ReelStatus
+
+	public init(reelStatus: ReelStatus) {
+		self.reelStatus = reelStatus
+	}
+}
+
 /// The `/api/_nafyn` health check response, used internally by ``NafynInstance/connect(to:session:)``.
 struct NafynPingResponse: Codable, Sendable {
 	struct ServerInfo: Codable, Sendable {
