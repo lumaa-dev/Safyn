@@ -165,7 +165,7 @@ public final class NafynServer: Sendable {
 		if let multipart = endpoint.multipart {
 			let boundary = "Safyn-Boundary-\(UUID().uuidString)"
 			request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-			request.httpBody = Self.multipartBody(boundary: boundary, file: multipart)
+			request.httpBody = Self.multipartBody(boundary: boundary, parts: multipart)
 		} else if let body = endpoint.body {
 			request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 			do {
@@ -178,8 +178,8 @@ public final class NafynServer: Sendable {
 		return request
 	}
 
-	/// Builds a `multipart/form-data` body containing a single file field.
-	private static func multipartBody(boundary: String, file: MultipartFile) -> Data {
+	/// Builds a `multipart/form-data` body from one or more file/text parts.
+	private static func multipartBody(boundary: String, parts: [MultipartPart]) -> Data {
 		var body = Data()
 		func append(_ string: String) {
 			if let chunk = string.data(using: .utf8) {
@@ -187,11 +187,21 @@ public final class NafynServer: Sendable {
 			}
 		}
 
-		append("--\(boundary)\r\n")
-		append("Content-Disposition: form-data; name=\"\(file.fieldName)\"; filename=\"\(file.filename)\"\r\n")
-		append("Content-Type: \(file.mimeType)\r\n\r\n")
-		body.append(file.data)
-		append("\r\n--\(boundary)--\r\n")
+		for part in parts {
+			append("--\(boundary)\r\n")
+			switch part {
+				case .file(let fieldName, let filename, let mimeType, let data):
+					append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(filename)\"\r\n")
+					append("Content-Type: \(mimeType)\r\n\r\n")
+					body.append(data)
+					append("\r\n")
+				case .text(let fieldName, let value):
+					append("Content-Disposition: form-data; name=\"\(fieldName)\"\r\n\r\n")
+					append(value)
+					append("\r\n")
+			}
+		}
+		append("--\(boundary)--\r\n")
 
 		return body
 	}

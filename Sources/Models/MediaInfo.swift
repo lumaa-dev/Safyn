@@ -65,7 +65,16 @@ public struct MediaInfo: Codable, Sendable, Hashable {
 	/// Cross-service identifiers, only present on some lookups.
 	public let relations: Relations?
 
-	public init(id: String, title: String, artist: ArtistRef, album: AlbumRef?, type: MediaKind?, coverArt: String?, releaseDate: Date?, inLibrary: Bool?, duration: Double, label: String?, relations: Relations? = nil) {
+	/// Dominant colors extracted from `coverArt`, most-dominant first. Only present on single-item
+	/// lookups (`Track.get(tid:)`/`Track.getByIsrc(isrc:)`) — `nil` on search results, artist
+	/// discography, and request info.
+	public let imageColors: [String]?
+
+	/// Black or white, whichever contrasts best (WCAG) against `imageColors?[0]`. Only present
+	/// alongside `imageColors`.
+	public let textColor: String?
+
+	public init(id: String, title: String, artist: ArtistRef, album: AlbumRef?, type: MediaKind?, coverArt: String?, releaseDate: Date?, inLibrary: Bool?, duration: Double, label: String?, relations: Relations? = nil, imageColors: [String]? = nil, textColor: String? = nil) {
 		self.id = id
 		self.title = title
 		self.artist = artist
@@ -77,5 +86,7 @@ public struct MediaInfo: Codable, Sendable, Hashable {
 		self.duration = duration
 		self.label = label
 		self.relations = relations
+		self.imageColors = imageColors
+		self.textColor = textColor
 	}
 }

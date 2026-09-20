@@ -189,10 +189,10 @@ public enum Playlist: NafynEndpoint {
 		}
 	}
 
-	public var multipart: MultipartFile? {
+	public var multipart: [MultipartPart]? {
 		switch self {
 			case .setImage(_, let data, let filename, let mimeType):
-				return MultipartFile(fieldName: "image", filename: filename, mimeType: mimeType, data: data)
+				return [.file(fieldName: "image", filename: filename, mimeType: mimeType, data: data)]
 			default:
 				return nil
 		}

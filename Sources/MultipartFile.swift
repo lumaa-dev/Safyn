@@ -2,27 +2,15 @@
 
 import Foundation
 
-/// A single file to upload as `multipart/form-data`.
+/// A single part of a `multipart/form-data` request.
 ///
-/// Used by ``NafynEndpoint/multipart`` for the endpoints that accept file uploads
-/// (playlist covers, user avatars). Mutually exclusive with ``NafynEndpoint/body``.
-public struct MultipartFile: Sendable, Equatable {
-	/// The form field name the server expects the file under, e.g. `"image"` or `"avatar"`.
-	public let fieldName: String
+/// Used by ``NafynEndpoint/multipart`` for the endpoints that accept file uploads (playlist/track
+/// covers, user avatars, track import) or mix file and text fields in one request (e.g.
+/// `Library.importTrack`). Mutually exclusive with ``NafynEndpoint/body``.
+public enum MultipartPart: Sendable, Equatable {
+	/// A file field, e.g. an image or audio upload.
+	case file(fieldName: String, filename: String, mimeType: String, data: Data)
 
-	/// The filename reported in the `Content-Disposition` header, e.g. `"upload.webp"`.
-	public let filename: String
-
-	/// The MIME type of `data`, e.g. `"image/webp"`.
-	public let mimeType: String
-
-	/// The raw file bytes.
-	public let data: Data
-
-	public init(fieldName: String, filename: String, mimeType: String, data: Data) {
-		self.fieldName = fieldName
-		self.filename = filename
-		self.mimeType = mimeType
-		self.data = data
-	}
+	/// A plain text field, sent alongside file parts in the same request.
+	case text(fieldName: String, value: String)
 }

@@ -62,6 +62,21 @@ public enum User: NafynEndpoint {
 	/// - Parameter id: API token ID.
 	case deleteApiToken(id: String)
 
+	/// Get the currently authenticated user's own display preferences (file size / duration visibility
+	/// in track lists).
+	///
+	/// Returns ``AppearanceSettings``.
+	case appearanceSettings
+
+	/// Update the currently authenticated user's own display preferences. Only the provided fields are changed.
+	///
+	/// Returns ``AppearanceSettings``.
+	/// - Parameters:
+	///   - showFileSize: Whether track lists should show file size. Turning this on without `manageMusic`/`admin`
+	///     is silently ignored, not rejected.
+	///   - showDuration: Whether track lists should show duration.
+	case updateAppearanceSettings(showFileSize: Bool? = nil, showDuration: Bool? = nil)
+
 	public var path: String {
 		switch self {
 			case .avatar(let id, _):
@@ -76,18 +91,20 @@ public enum User: NafynEndpoint {
 				return "/api/v1/user/tokens"
 			case .deleteApiToken(let id):
 				return "/api/v1/user/tokens/\(id)"
+			case .appearanceSettings, .updateAppearanceSettings:
+				return "/api/v1/user/appearance-settings"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .avatar, .me, .apiTokens:
+			case .avatar, .me, .apiTokens, .appearanceSettings:
 				return [.get]
 			case .deleteAvatar, .deleteApiToken:
 				return [.delete]
 			case .setAvatar, .createApiToken:
 				return [.post]
-			case .updateProfile:
+			case .updateProfile, .updateAppearanceSettings:
 				return [.patch]
 		}
 	}
@@ -108,15 +125,17 @@ public enum User: NafynEndpoint {
 				return AnyEncodable(UpdateMyProfileRequest(displayName: displayName, lastFm: lastFm, discogs: discogs))
 			case .createApiToken(let name):
 				return AnyEncodable(CreateApiTokenRequest(name: name))
+			case .updateAppearanceSettings(let showFileSize, let showDuration):
+				return AnyEncodable(UpdateAppearanceSettingsRequest(showFileSize: showFileSize, showDuration: showDuration))
 			default:
 				return nil
 		}
 	}
 
-	public var multipart: MultipartFile? {
+	public var multipart: [MultipartPart]? {
 		switch self {
 			case .setAvatar(let data, let filename, let mimeType):
-				return MultipartFile(fieldName: "avatar", filename: filename, mimeType: mimeType, data: data)
+				return [.file(fieldName: "avatar", filename: filename, mimeType: mimeType, data: data)]
 			default:
 				return nil
 		}
@@ -125,6 +144,11 @@ public enum User: NafynEndpoint {
 
 struct CreateApiTokenRequest: Encodable, Sendable {
 	let name: String?
+}
+
+struct UpdateAppearanceSettingsRequest: Encodable, Sendable {
+	let showFileSize: Bool?
+	let showDuration: Bool?
 }
 
 struct UpdateMyProfileRequest: Encodable, Sendable {

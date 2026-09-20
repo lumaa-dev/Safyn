@@ -33,15 +33,15 @@ public protocol NafynEndpoint: Sendable {
 	/// Mutually exclusive with ``multipart``: an endpoint should never set both.
 	var body: AnyEncodable? { get }
 
-	/// The multipart file upload payload for this endpoint, if any.
+	/// The multipart form parts for this endpoint (file and/or text fields), if any.
 	///
 	/// Mutually exclusive with ``body``: an endpoint should never set both.
-	var multipart: MultipartFile? { get }
+	var multipart: [MultipartPart]? { get }
 }
 
 public extension NafynEndpoint {
 	var queries: [URLQueryItem] { [] }
 	var headers: [String: String] { [:] }
 	var body: AnyEncodable? { nil }
-	var multipart: MultipartFile? { nil }
+	var multipart: [MultipartPart]? { nil }
 }

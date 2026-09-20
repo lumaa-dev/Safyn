@@ -42,15 +42,89 @@ public struct RemovedWithFileResponse: Codable, Sendable, Hashable {
 
 /// The result of `Library.album(id:)`: one album's metadata plus only the tracks the requesting user owns from it.
 public struct LibraryAlbumResponse: Codable, Sendable, Hashable {
+	/// An album's metadata, extended with cover-derived color info — only populated by
+	/// `Library.album(id:)`, unlike ``AlbumRow`` on its own.
+	public struct Album: Codable, Sendable, Hashable {
+		/// The album's metadata.
+		public let row: AlbumRow
+
+		/// Dominant colors extracted from `row.coverArt`, most-dominant first.
+		public let imageColors: [String]
+
+		/// Black or white, whichever contrasts best (WCAG) against `imageColors[0]`.
+		public let textColor: String
+
+		public init(row: AlbumRow, imageColors: [String], textColor: String) {
+			self.row = row
+			self.imageColors = imageColors
+			self.textColor = textColor
+		}
+
+		public init(from decoder: Decoder) throws {
+			self.row = try AlbumRow(from: decoder)
+			let container = try decoder.container(keyedBy: CodingKeys.self)
+			self.imageColors = try container.decode([String].self, forKey: .imageColors)
+			self.textColor = try container.decode(String.self, forKey: .textColor)
+		}
+
+		public func encode(to encoder: Encoder) throws {
+			try row.encode(to: encoder)
+			var container = encoder.container(keyedBy: CodingKeys.self)
+			try container.encode(imageColors, forKey: .imageColors)
+			try container.encode(textColor, forKey: .textColor)
+		}
+
+		private enum CodingKeys: String, CodingKey {
+			case imageColors, textColor
+		}
+	}
+
 	/// The album's metadata.
-	public let album: AlbumRow
+	public let album: Album
 
 	/// The tracks from this album the requesting user owns.
 	public let tracks: [MediaRow]
 
-	public init(album: AlbumRow, tracks: [MediaRow]) {
+	public init(album: Album, tracks: [MediaRow]) {
 		self.album = album
 		self.tracks = tracks
+	}
+}
+
+/// The result of `Library.track(id:)`: one library track's metadata, extended with cover-derived
+/// color info — only populated by this endpoint, unlike ``MediaRow`` on its own.
+public struct LibraryTrackResponse: Codable, Sendable, Hashable {
+	/// The track's metadata.
+	public let row: MediaRow
+
+	/// Dominant colors extracted from `row.coverArt`, most-dominant first.
+	public let imageColors: [String]
+
+	/// Black or white, whichever contrasts best (WCAG) against `imageColors[0]`.
+	public let textColor: String
+
+	public init(row: MediaRow, imageColors: [String], textColor: String) {
+		self.row = row
+		self.imageColors = imageColors
+		self.textColor = textColor
+	}
+
+	public init(from decoder: Decoder) throws {
+		self.row = try MediaRow(from: decoder)
+		let container = try decoder.container(keyedBy: CodingKeys.self)
+		self.imageColors = try container.decode([String].self, forKey: .imageColors)
+		self.textColor = try container.decode(String.self, forKey: .textColor)
+	}
+
+	public func encode(to encoder: Encoder) throws {
+		try row.encode(to: encoder)
+		var container = encoder.container(keyedBy: CodingKeys.self)
+		try container.encode(imageColors, forKey: .imageColors)
+		try container.encode(textColor, forKey: .textColor)
+	}
+
+	private enum CodingKeys: String, CodingKey {
+		case imageColors, textColor
 	}
 }
 

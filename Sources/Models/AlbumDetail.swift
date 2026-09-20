@@ -36,7 +36,13 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 	/// The album's tracklist.
 	public let tracks: [TrackInfo]
 
-	public init(id: String, releaseId: String, title: String, artist: ArtistRef, type: AlbumKind?, coverArt: String?, releaseDate: Date?, description: String?, label: String?, tracks: [TrackInfo]) {
+	/// Dominant colors extracted from `coverArt`, most-dominant first.
+	public let imageColors: [String]
+
+	/// Black or white, whichever contrasts best (WCAG) against `imageColors[0]`.
+	public let textColor: String
+
+	public init(id: String, releaseId: String, title: String, artist: ArtistRef, type: AlbumKind?, coverArt: String?, releaseDate: Date?, description: String?, label: String?, tracks: [TrackInfo], imageColors: [String], textColor: String) {
 		self.id = id
 		self.releaseId = releaseId
 		self.title = title
@@ -47,5 +53,7 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 		self.description = description
 		self.label = label
 		self.tracks = tracks
+		self.imageColors = imageColors
+		self.textColor = textColor
 	}
 }

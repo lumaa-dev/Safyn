@@ -92,10 +92,10 @@ public enum Users: NafynEndpoint {
 		}
 	}
 
-	public var multipart: MultipartFile? {
+	public var multipart: [MultipartPart]? {
 		switch self {
 			case .setAvatar(_, let data, let filename, let mimeType):
-				return MultipartFile(fieldName: "avatar", filename: filename, mimeType: mimeType, data: data)
+				return [.file(fieldName: "avatar", filename: filename, mimeType: mimeType, data: data)]
 			default:
 				return nil
 		}
