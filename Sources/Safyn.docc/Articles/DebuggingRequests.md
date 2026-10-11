@@ -29,14 +29,3 @@ debugging:
 ```swift
 server.debugLoggingEnabled = true
 ```
-
-## Reproduce a request outside your app
-
-``NafynServer/curlCommand(for:)`` builds an equivalent `curl` command for any endpoint, using the
-exact same request-building logic as ``NafynServer/send(_:)`` — useful for confirming whether a bug is
-in your app or on the server, or for sharing a repro case with whoever runs the Nafyn server:
-
-```swift
-print(server.curlCommand(for: Album.get(aid: someId)))
-// curl -X GET -H 'Authorization: Bearer ...' 'http://192.168.1.138:3000/api/v1/album/...'
-```

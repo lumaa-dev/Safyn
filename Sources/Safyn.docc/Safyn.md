@@ -12,7 +12,7 @@ you first validate a server's URL into a ``NafynInstance`` before you can talk t
 ```swift
 import Safyn
 
-let instance = try await NafynInstance.connect(to: URL(string: "http://192.168.1.138:3000")!)
+let instance = try await NafynInstance.connect(appName: "MyApp", to: URL(string: "http://192.168.1.138:3000")!)
 let server = NafynServer(instance: instance)
 
 let auth: AuthResponse = try await server.send(Auth.login(username: "me", password: "hunter2"))
@@ -30,10 +30,20 @@ ranges, `.local` mDNS hosts); anything else must use `https://`.
 
 - <doc:GettingStarted>
 - <doc:DebuggingRequests>
+- <doc:HandlingErrors>
 - ``NafynInstance``
 - ``NafynServer``
 - ``NafynEndpoint``
 - ``NafynError``
+
+### Guides
+
+- <doc:ProfileAndPreferences>
+- <doc:SessionsAndAccess>
+- <doc:BrowsingTheLibrary>
+- <doc:ManagingLibraryTracks>
+- <doc:UploadingFiles>
+- <doc:RemoteControlWithUnity>
 
 ### Endpoints
 
@@ -53,3 +63,17 @@ ranges, `.local` mDNS hosts); anything else must use `https://`.
 
 - ``NafynDownloadSocket``
 - ``DownloadProgressEvent``
+
+### Sessions
+
+- ``SessionSummary``
+
+### Nafyn Unity
+
+- ``NafynUnitySocket``
+- ``UnitySettings``
+- ``UnityEvent``
+- ``UnityPlaybackState``
+- ``UnityCommand``
+- ``UnityMasterStatus``
+- ``JSONValue``

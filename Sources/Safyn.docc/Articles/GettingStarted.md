@@ -13,10 +13,18 @@ into a ``NafynInstance``. This pings the server's `/api/_nafyn` health check and
 running Nafyn:
 
 ```swift
-let instance = try await NafynInstance.connect(to: URL(string: "http://192.168.1.138:3000")!)
+let instance = try await NafynInstance.connect(appName: "MyApp", to: URL(string: "http://192.168.1.138:3000")!)
 ```
 
-`connect(to:session:)` only allows plain `http://` for local/private hosts (`localhost`, loopback
+### Name your app
+
+`appName` is mandatory. It becomes the `User-Agent` header of every request made through the instance
+(including the connection check and the WebSocket handshakes), and the server uses it to label this
+device in the user's sessions (see ``SessionSummary/deviceLabel``). It's set once here and can never be
+changed for the lifetime of the instance and any ``NafynServer`` built from it; pass a different name by
+connecting again. An empty name throws ``NafynError/invalidAppName``.
+
+`connect(appName:to:session:)` only allows plain `http://` for local/private hosts (`localhost`, loopback
 addresses, RFC 1918 private ranges, and `.local` hosts). Anything else — a public domain or IP — must
 use `https://`, or this throws ``NafynError/insecureConnection(host:)``.
 
