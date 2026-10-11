@@ -16,18 +16,26 @@ public enum Auth: NafynEndpoint {
 	/// - Parameter token: A registration token, required only when open registration is disabled. See ``Settings/registerTokens``.
 	case register(username: String, password: String, token: String? = nil)
 
+	/// Revoke the currently authenticated session (the one making this request), signing this device out server-side.
+	///
+	/// The response has no body — send this with ``NafynServer/sendRaw(_:)``, not ``NafynServer/send(_:)``.
+	/// Afterwards, clear ``NafynServer/authToken``; the token is rejected on its next request.
+	case logout
+
 	public var path: String {
 		switch self {
 			case .login:
 				return "/api/v1/auth/login"
 			case .register:
 				return "/api/v1/auth/register"
+			case .logout:
+				return "/api/v1/auth/logout"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .login, .register:
+			case .login, .register, .logout:
 				return [.post]
 		}
 	}
@@ -38,6 +46,8 @@ public enum Auth: NafynEndpoint {
 				return AnyEncodable(LoginRequest(username: username, password: password))
 			case .register(let username, let password, let token):
 				return AnyEncodable(RegisterRequest(username: username, password: password, token: token))
+			case .logout:
+				return nil
 		}
 	}
 }

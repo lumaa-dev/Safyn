@@ -4,12 +4,18 @@ import Foundation
 
 /// A validated connection to a specific Nafyn server.
 ///
-/// Create one with ``connect(to:session:)``, then pass it to ``NafynServer`` to actually call endpoints:
+/// Create one with ``connect(appName:to:session:)``, then pass it to ``NafynServer`` to actually call endpoints:
 /// ```swift
-/// let instance = try await NafynInstance.connect(to: URL(string: "http://localhost:3000")!)
+/// let instance = try await NafynInstance.connect(appName: "MyApp", to: URL(string: "http://localhost:3000")!)
 /// let server = NafynServer(instance: instance)
 /// ```
 public struct NafynInstance: Sendable, Equatable {
+
+	/// The name of the app using Safyn, sent as the `User-Agent` header of every request to this server.
+	///
+	/// Set once in ``connect(appName:to:session:)`` and immutable for the lifetime of the instance. The
+	/// server shows it as the device label in the user's sessions (see ``SessionSummary/deviceLabel``).
+	public let appName: String
 
 	/// The server's base URL, normalized without a trailing slash.
 	public let baseURL: URL
@@ -27,12 +33,19 @@ public struct NafynInstance: Sendable, Equatable {
 	/// any other host must use `https://`.
 	///
 	/// - Parameters:
+	///   - appName: The name of your app, sent as the `User-Agent` of every request made through this instance.
+	///     Mandatory, and can't be changed afterwards. Leading/trailing whitespace is trimmed.
 	///   - url: The Nafyn server's base URL, e.g. `http://192.168.1.138:3000` or `https://music.example.com`.
 	///   - session: The `URLSession` to validate with. Defaults to `.shared`.
-	/// - Throws: ``NafynError/insecureConnection(host:)`` if `url` uses `http` on a non-local host,
+	/// - Throws: ``NafynError/invalidAppName`` if `appName` is empty,
+	///   ``NafynError/insecureConnection(host:)`` if `url` uses `http` on a non-local host,
 	///   ``NafynError/notNafynServer(url:)`` if the server doesn't identify itself as Nafyn,
 	///   ``NafynError/transport(_:)``/``NafynError/invalidResponse``/``NafynError/decoding(_:)`` for network/parsing failures.
-	public static func connect(to url: URL, session: URLSession = .shared) async throws -> NafynInstance {
+	public static func connect(appName: String, to url: URL, session: URLSession = .shared) async throws -> NafynInstance {
+		let appName = appName.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard !appName.isEmpty else {
+			throw NafynError.invalidAppName
+		}
 		guard let scheme = url.scheme, let host = url.host, !host.isEmpty else {
 			throw NafynError.invalidURL
 		}
@@ -51,7 +64,9 @@ public struct NafynInstance: Sendable, Equatable {
 		let data: Data
 		let response: URLResponse
 		do {
-			(data, response) = try await session.data(from: pingURL)
+			var pingRequest = URLRequest(url: pingURL)
+			pingRequest.setValue(appName, forHTTPHeaderField: "User-Agent")
+			(data, response) = try await session.data(for: pingRequest)
 		} catch {
 			throw NafynError.transport(error.localizedDescription)
 		}
@@ -71,6 +86,7 @@ public struct NafynInstance: Sendable, Equatable {
 		}
 
 		return NafynInstance(
+			appName: appName,
 			baseURL: baseURL,
 			serverId: ping.response.id,
 			serverDate: Date(timeIntervalSince1970: TimeInterval(ping.response.date))

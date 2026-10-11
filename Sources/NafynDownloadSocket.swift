@@ -24,7 +24,7 @@ import Foundation
 ///   (``onEvent``, ``onClose``, ``onError``) simple to assign from any context, including a SwiftUI
 ///   view model, without every access needing `await`.
 public final class NafynDownloadSocket: NSObject, @unchecked Sendable {
-	private let url: URL
+	private let request: URLRequest
 	private var session: URLSession!
 	private var task: URLSessionWebSocketTask?
 	private var pingTimer: Timer?
@@ -41,15 +41,15 @@ public final class NafynDownloadSocket: NSObject, @unchecked Sendable {
 	/// Called for transport errors, including failures to decode a pushed event.
 	public var onError: (@Sendable (any Error) -> Void)?
 
-	init(url: URL) {
-		self.url = url
+	init(request: URLRequest) {
+		self.request = request
 		super.init()
 		self.session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
 	}
 
 	/// Opens the connection and starts listening for events.
 	public func connect() {
-		let task = session.webSocketTask(with: url)
+		let task = session.webSocketTask(with: request)
 		self.task = task
 		task.resume()
 		listen()

@@ -15,7 +15,7 @@ let testPassword = "change-me"
 
 /// Connects to `testURL` without authenticating.
 func connectedServer() async throws -> NafynServer {
-	let instance = try await NafynInstance.connect(to: testURL)
+	let instance = try await NafynInstance.connect(appName: "SafynTests", to: testURL)
 	return NafynServer(instance: instance)
 }
 

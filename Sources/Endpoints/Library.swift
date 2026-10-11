@@ -192,10 +192,12 @@ public enum Library: NafynEndpoint {
 				return [.delete]
 			case .lyrics, .stream, .album, .albums, .all, .recentlyPlayed, .track, .tracks, .cover:
 				return [.get]
-			case .recordRecentlyPlayed, .setCover, .importTrack:
+			case .recordRecentlyPlayed, .importTrack:
 				return [.post]
-			case .editMetadata, .setLyrics:
+			case .editMetadata:
 				return [.patch]
+			case .setLyrics, .setCover:
+				return [.put]
 		}
 	}
 

@@ -8,7 +8,7 @@ import os
 /// `NafynServer` is the single entry point for every Nafyn API call. Create one from a validated
 /// instance, optionally log in, then pass any endpoint case to ``send(_:)``:
 /// ```swift
-/// let instance = try await NafynInstance.connect(to: URL(string: "http://localhost:3000")!)
+/// let instance = try await NafynInstance.connect(appName: "MyApp", to: URL(string: "http://localhost:3000")!)
 /// let server = NafynServer(instance: instance)
 ///
 /// let auth: AuthResponse = try await server.send(Auth.login(username: "me", password: "hunter2"))
@@ -24,6 +24,11 @@ public final class NafynServer: Sendable {
 
 	/// The Nafyn server this instance talks to.
 	public let instance: NafynInstance
+
+	/// The app name sent as the `User-Agent` of every request, including WebSocket handshakes.
+	///
+	/// Read-only: it's fixed by ``NafynInstance/connect(appName:to:session:)``.
+	public var appName: String { instance.appName }
 
 	private let session: URLSession
 	private let encoder: JSONEncoder
@@ -43,8 +48,7 @@ public final class NafynServer: Sendable {
 
 	/// When `true`, every request and response is logged via `os.Logger` (subsystem `"com.safyn"`, category `"network"`).
 	///
-	/// Turn this on while debugging a failing request in your app; pair it with ``curlCommand(for:)``
-	/// to reproduce the exact same request outside your app.
+	/// Turn this on while debugging a failing request in your app.
 	public var debugLoggingEnabled: Bool {
 		get { debugLock.withLock { $0 } }
 		set { debugLock.withLock { $0 = newValue } }
@@ -52,7 +56,7 @@ public final class NafynServer: Sendable {
 
 	/// Creates a server that executes requests against `instance`.
 	/// - Parameters:
-	///   - instance: A validated ``NafynInstance``, from ``NafynInstance/connect(to:session:)``.
+	///   - instance: A validated ``NafynInstance``, from ``NafynInstance/connect(appName:to:session:)``.
 	///   - authToken: A previously-obtained session token, if you're restoring a logged-in session.
 	///   - session: The `URLSession` to issue requests with. Defaults to `.shared`.
 	///   - debugLoggingEnabled: Whether to log requests/responses on creation. Defaults to `false`.
@@ -75,6 +79,7 @@ public final class NafynServer: Sendable {
 	public enum HTTPMethod: String, Sendable {
 		case get = "GET"
 		case post = "POST"
+		case put = "PUT"
 		case patch = "PATCH"
 		case delete = "DELETE"
 	}
@@ -133,10 +138,38 @@ public final class NafynServer: Sendable {
 		guard let url = components.url else {
 			throw NafynError.invalidURL
 		}
-		return NafynDownloadSocket(url: url)
+		return NafynDownloadSocket(request: userAgentRequest(for: url))
+	}
+
+	// MARK: - Nafyn Unity
+
+	/// Opens a ``NafynUnitySocket`` for remote-controlling playback across this account's devices, using
+	/// this server's current ``authToken`` and instance host.
+	///
+	/// - Throws: ``NafynError/unauthenticated`` if ``authToken`` isn't set.
+	public func unitySocket() throws -> NafynUnitySocket {
+		guard let token = authToken else {
+			throw NafynError.unauthenticated
+		}
+		guard var components = URLComponents(url: instance.baseURL, resolvingAgainstBaseURL: false) else {
+			throw NafynError.invalidURL
+		}
+		components.scheme = components.scheme == "https" ? "wss" : "ws"
+		components.path += "/ws/unity"
+		components.queryItems = [URLQueryItem(name: "token", value: token)]
+		guard let url = components.url else {
+			throw NafynError.invalidURL
+		}
+		return NafynUnitySocket(request: userAgentRequest(for: url))
 	}
 
 	// MARK: - Request building
+
+	private func userAgentRequest(for url: URL) -> URLRequest {
+		var request = URLRequest(url: url)
+		request.setValue(appName, forHTTPHeaderField: "User-Agent")
+		return request
+	}
 
 	private func buildRequest<E: NafynEndpoint>(for endpoint: E) throws -> URLRequest {
 		guard let url = URL(string: instance.baseURL.absoluteString + endpoint.path) else {
@@ -161,6 +194,8 @@ public final class NafynServer: Sendable {
 		if let token = authToken {
 			request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 		}
+		// set last so an endpoint can't override it
+		request.setValue(appName, forHTTPHeaderField: "User-Agent")
 
 		if let multipart = endpoint.multipart {
 			let boundary = "Safyn-Boundary-\(UUID().uuidString)"

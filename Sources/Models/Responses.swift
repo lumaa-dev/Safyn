@@ -265,7 +265,7 @@ public struct RequestReelVideoResponse: Codable, Sendable, Hashable {
 	}
 }
 
-/// The `/api/_nafyn` health check response, used internally by ``NafynInstance/connect(to:session:)``.
+/// The `/api/_nafyn` health check response, used internally by ``NafynInstance/connect(appName:to:session:)``.
 struct NafynPingResponse: Codable, Sendable {
 	struct ServerInfo: Codable, Sendable {
 		let id: UUID

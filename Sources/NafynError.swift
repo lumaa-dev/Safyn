@@ -10,9 +10,12 @@ public enum NafynError: LocalizedError, Sendable, Equatable {
 	/// The instance's base URL, or an endpoint's assembled URL, could not be constructed.
 	case invalidURL
 
+	/// The app name passed to ``NafynInstance/connect(appName:to:session:)`` was empty or whitespace-only.
+	case invalidAppName
+
 	/// `http://` was used against a host that isn't local/private, which Safyn refuses to do to avoid leaking credentials in plaintext.
 	///
-	/// - SeeAlso: ``NafynInstance/connect(to:session:)`` for the exact allowlist (loopback, RFC1918 private ranges, `.local` hosts).
+	/// - SeeAlso: ``NafynInstance/connect(appName:to:session:)`` for the exact allowlist (loopback, RFC1918 private ranges, `.local` hosts).
 	case insecureConnection(host: String)
 
 	/// The server at this URL responded, but didn't identify itself as a Nafyn server via `/api/_nafyn`.
@@ -41,6 +44,8 @@ public enum NafynError: LocalizedError, Sendable, Equatable {
 		switch self {
 			case .invalidURL:
 				return "The request URL could not be constructed."
+			case .invalidAppName:
+				return "The app name must not be empty; it is sent as the User-Agent of every request."
 			case .insecureConnection(let host):
 				return "Refusing to connect to '\(host)' over plain HTTP; only local/private hosts are allowed to skip HTTPS."
 			case .notNafynServer(let url):

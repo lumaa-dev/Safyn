@@ -22,7 +22,7 @@ Or in Xcode: **File → Add Package Dependencies…** and paste the repository U
 import Safyn
 
 // Nafyn is self-hosted, so validate the server's URL before doing anything else.
-let instance = try await NafynInstance.connect(to: URL(string: "http://192.168.1.138:3000")!)
+let instance = try await NafynInstance.connect(appName: "MyApp", to: URL(string: "http://192.168.1.138:3000")!)
 let server = NafynServer(instance: instance)
 
 // Log in and store the session token.

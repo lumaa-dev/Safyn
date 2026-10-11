@@ -44,3 +44,37 @@ struct UserTests {
 		#expect(updated.avatar == nil)
 	}
 }
+
+@Suite("Session & Unity Endpoints")
+struct SessionTests {
+
+	@Test("Listing sessions includes the current one")
+	func sessions() async throws {
+		let server = try await authenticatedServer()
+		let sessions: [SessionSummary] = try await server.send(User.sessions)
+		#expect(sessions.contains { $0.isCurrent })
+	}
+
+	@Test("Unity setting round-trips")
+	func unitySettings() async throws {
+		let server = try await authenticatedServer()
+		let updated: UnitySettings = try await server.send(User.updateUnitySettings(enabled: true))
+		#expect(updated.enabled)
+	}
+
+	@Test("Command wire format round-trips")
+	func commandWire() {
+		let command = UnityCommand.seek(93)
+		#expect(UnityCommand(action: command.action, payload: command.payload) == command)
+	}
+
+	@Test("Unity event decoding")
+	func eventDecoding() throws {
+		let json = #"{"type":"command","action":"seek","payload":[93]}"#
+		let event = try JSONDecoder().decode(UnityEvent.self, from: Data(json.utf8))
+		guard case .command(.seek(93)) = event else {
+			Issue.record("unexpected \(event)")
+			return
+		}
+	}
+}

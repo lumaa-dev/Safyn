@@ -14,7 +14,7 @@ struct NafynInstanceTests {
 	func rejectsInsecureRemoteURL() async throws {
 		let remoteHTTP = URL(string: "http://example.com")!
 		await #expect(throws: NafynError.self) {
-			_ = try await NafynInstance.connect(to: remoteHTTP)
+			_ = try await NafynInstance.connect(appName: "SafynTests", to: remoteHTTP)
 		}
 	}
 
@@ -22,7 +22,14 @@ struct NafynInstanceTests {
 	func rejectsUnsupportedScheme() async throws {
 		let ftp = URL(string: "ftp://192.168.1.10")!
 		await #expect(throws: NafynError.self) {
-			_ = try await NafynInstance.connect(to: ftp)
+			_ = try await NafynInstance.connect(appName: "SafynTests", to: ftp)
+		}
+	}
+
+	@Test("Rejects an empty app name")
+	func rejectsEmptyAppName() async throws {
+		await #expect(throws: NafynError.invalidAppName) {
+			_ = try await NafynInstance.connect(appName: "  ", to: testURL)
 		}
 	}
 
@@ -30,7 +37,7 @@ struct NafynInstanceTests {
 
 	@Test("Connects to a live local Nafyn server")
 	func connectsToLocalServer() async throws {
-		let instance = try await NafynInstance.connect(to: testURL)
+		let instance = try await NafynInstance.connect(appName: "SafynTests", to: testURL)
 		#expect(instance.baseURL.host == testURL.host)
 	}
 }

@@ -77,6 +77,30 @@ public enum User: NafynEndpoint {
 	///   - showDuration: Whether track lists should show duration.
 	case updateAppearanceSettings(showFileSize: Bool? = nil, showDuration: Bool? = nil)
 
+	/// List the currently authenticated user's own active login sessions, one per device/login.
+	///
+	/// Returns `[`` SessionSummary``]`.
+	case sessions
+
+	/// Revoke one of the currently authenticated user's own login sessions, signing that device out.
+	///
+	/// The response has no body — send this with ``NafynServer/sendRaw(_:)``. Fails with a 404 if `id`
+	/// isn't one of your sessions. To revoke the calling session itself, prefer ``Auth/logout``.
+	/// - Parameter id: Session ID, from ``SessionSummary/id``.
+	case deleteSession(id: String)
+
+	/// Get the currently authenticated user's Nafyn Unity preference.
+	///
+	/// Returns ``UnitySettings``.
+	case unitySettings
+
+	/// Turn Nafyn Unity on or off account-wide for the currently authenticated user.
+	///
+	/// The server does not check this when a Unity socket opens, so it only gates UI — see ``NafynUnitySocket``.
+	///
+	/// Returns ``UnitySettings``.
+	case updateUnitySettings(enabled: Bool)
+
 	public var path: String {
 		switch self {
 			case .avatar(let id, _):
@@ -93,18 +117,24 @@ public enum User: NafynEndpoint {
 				return "/api/v1/user/tokens/\(id)"
 			case .appearanceSettings, .updateAppearanceSettings:
 				return "/api/v1/user/appearance-settings"
+			case .sessions:
+				return "/api/v1/user/sessions"
+			case .deleteSession(let id):
+				return "/api/v1/user/sessions/\(id)"
+			case .unitySettings, .updateUnitySettings:
+				return "/api/v1/user/unity-settings"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .avatar, .me, .apiTokens, .appearanceSettings:
+			case .avatar, .me, .apiTokens, .appearanceSettings, .sessions, .unitySettings:
 				return [.get]
-			case .deleteAvatar, .deleteApiToken:
+			case .deleteAvatar, .deleteApiToken, .deleteSession:
 				return [.delete]
 			case .setAvatar, .createApiToken:
 				return [.post]
-			case .updateProfile, .updateAppearanceSettings:
+			case .updateProfile, .updateAppearanceSettings, .updateUnitySettings:
 				return [.patch]
 		}
 	}
@@ -127,6 +157,8 @@ public enum User: NafynEndpoint {
 				return AnyEncodable(CreateApiTokenRequest(name: name))
 			case .updateAppearanceSettings(let showFileSize, let showDuration):
 				return AnyEncodable(UpdateAppearanceSettingsRequest(showFileSize: showFileSize, showDuration: showDuration))
+			case .updateUnitySettings(let enabled):
+				return AnyEncodable(UnitySettings(enabled: enabled))
 			default:
 				return nil
 		}
