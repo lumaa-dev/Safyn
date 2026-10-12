@@ -22,6 +22,23 @@ public enum Auth: NafynEndpoint {
 	/// Afterwards, clear ``NafynServer/authToken``; the token is rejected on its next request.
 	case logout
 
+	/// Start a passkey login: returns options to pass into the browser's `navigator.credentials.get()`,
+	/// plus a challenge ID to send back to ``passkeyLogin(challengeId:response:)``. No username needed —
+	/// the credential is discoverable.
+	///
+	/// Returns an untyped ``JSONValue`` — send this with ``NafynServer/send(_:)`` and decode the shape your
+	/// WebAuthn library expects.
+	case passkeyLoginOptions
+
+	/// Finish a passkey login: verifies the browser's `navigator.credentials.get()` response against the
+	/// challenge from ``passkeyLoginOptions`` and, if valid, logs the owning user in.
+	///
+	/// Returns ``AuthResponse``.
+	/// - Parameters:
+	///   - challengeId: The challenge ID from ``passkeyLoginOptions``.
+	///   - response: The `AuthenticationResponseJSON` from the browser's `startAuthentication()`.
+	case passkeyLogin(challengeId: String, response: JSONValue)
+
 	public var path: String {
 		switch self {
 			case .login:
@@ -30,12 +47,16 @@ public enum Auth: NafynEndpoint {
 				return "/api/v1/auth/register"
 			case .logout:
 				return "/api/v1/auth/logout"
+			case .passkeyLoginOptions:
+				return "/api/v1/auth/passkey/login-options"
+			case .passkeyLogin:
+				return "/api/v1/auth/passkey/login"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .login, .register, .logout:
+			case .login, .register, .logout, .passkeyLoginOptions, .passkeyLogin:
 				return [.post]
 		}
 	}
@@ -46,10 +67,17 @@ public enum Auth: NafynEndpoint {
 				return AnyEncodable(LoginRequest(username: username, password: password))
 			case .register(let username, let password, let token):
 				return AnyEncodable(RegisterRequest(username: username, password: password, token: token))
-			case .logout:
+			case .logout, .passkeyLoginOptions:
 				return nil
+			case .passkeyLogin(let challengeId, let response):
+				return AnyEncodable(PasskeyLoginRequest(challengeId: challengeId, response: response))
 		}
 	}
+}
+
+struct PasskeyLoginRequest: Encodable, Sendable {
+	let challengeId: String
+	let response: JSONValue
 }
 
 struct LoginRequest: Encodable, Sendable {

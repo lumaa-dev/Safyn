@@ -101,6 +101,57 @@ public enum User: NafynEndpoint {
 	/// Returns ``UnitySettings``.
 	case updateUnitySettings(enabled: Bool)
 
+	/// List the currently authenticated user's own registered passkeys. Public keys are never returned.
+	///
+	/// Returns `[`` PasskeySummary``]`.
+	case passkeys
+
+	/// Remove one of the currently authenticated user's own passkeys.
+	///
+	/// The response has no body — send this with ``NafynServer/sendRaw(_:)``. Fails with a 404 if `id`
+	/// isn't one of your passkeys.
+	/// - Parameter id: Passkey ID, from ``PasskeySummary/id``.
+	case deletePasskey(id: String)
+
+	/// Start registering a new passkey for the currently authenticated user: returns options to pass
+	/// into the browser's `navigator.credentials.create()`.
+	///
+	/// Returns an untyped ``JSONValue`` — send this with ``NafynServer/send(_:)`` and decode the shape
+	/// your WebAuthn library expects. Fails with a 400 if the passkey limit has been reached.
+	case passkeyRegisterOptions
+
+	/// Finish registering a new passkey: verifies the browser's `navigator.credentials.create()`
+	/// response against the challenge from ``passkeyRegisterOptions`` and stores the credential.
+	///
+	/// The response has no body — send this with ``NafynServer/sendRaw(_:)``.
+	/// - Parameters:
+	///   - response: The `RegistrationResponseJSON` from the browser's `startRegistration()`.
+	///   - label: An optional user-assigned label for the passkey.
+	case registerPasskey(response: JSONValue, label: String? = nil)
+
+	/// Full export of everything the instance holds about the currently authenticated user: profile,
+	/// settings, session/login metadata, credential metadata (never secrets), library entries,
+	/// playlists, download requests, recently played, and all listening data. Always scoped to the
+	/// caller — there is no parameter for exporting anyone else's account.
+	///
+	/// Returns raw `Data` — send this with ``NafynServer/sendRaw(_:)``, not ``NafynServer/send(_:)``.
+	/// Fails with a 429 if exported too often.
+	case exportAccountData
+
+	/// Get the currently authenticated user's own playback preferences (crossfade).
+	///
+	/// Returns ``PlaybackSettings``.
+	case playbackSettings
+
+	/// Update the currently authenticated user's own playback preferences. Only the provided fields are
+	/// changed.
+	///
+	/// Returns ``PlaybackSettings``.
+	/// - Parameters:
+	///   - crossfadeEnabled: Whether crossfade is enabled.
+	///   - crossfadeMs: Crossfade length in milliseconds, clamped to 500-12000 server-side.
+	case updatePlaybackSettings(crossfadeEnabled: Bool? = nil, crossfadeMs: Int? = nil)
+
 	public var path: String {
 		switch self {
 			case .avatar(let id, _):
@@ -123,18 +174,30 @@ public enum User: NafynEndpoint {
 				return "/api/v1/user/sessions/\(id)"
 			case .unitySettings, .updateUnitySettings:
 				return "/api/v1/user/unity-settings"
+			case .passkeys:
+				return "/api/v1/user/passkeys"
+			case .deletePasskey(let id):
+				return "/api/v1/user/passkeys/\(id)"
+			case .passkeyRegisterOptions:
+				return "/api/v1/user/passkeys/register-options"
+			case .registerPasskey:
+				return "/api/v1/user/passkeys/register"
+			case .exportAccountData:
+				return "/api/v1/user/export"
+			case .playbackSettings, .updatePlaybackSettings:
+				return "/api/v1/user/playback-settings"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .avatar, .me, .apiTokens, .appearanceSettings, .sessions, .unitySettings:
+			case .avatar, .me, .apiTokens, .appearanceSettings, .sessions, .unitySettings, .passkeys, .exportAccountData, .playbackSettings:
 				return [.get]
-			case .deleteAvatar, .deleteApiToken, .deleteSession:
+			case .deleteAvatar, .deleteApiToken, .deleteSession, .deletePasskey:
 				return [.delete]
-			case .setAvatar, .createApiToken:
+			case .setAvatar, .createApiToken, .passkeyRegisterOptions, .registerPasskey:
 				return [.post]
-			case .updateProfile, .updateAppearanceSettings, .updateUnitySettings:
+			case .updateProfile, .updateAppearanceSettings, .updateUnitySettings, .updatePlaybackSettings:
 				return [.patch]
 		}
 	}
@@ -159,6 +222,10 @@ public enum User: NafynEndpoint {
 				return AnyEncodable(UpdateAppearanceSettingsRequest(showFileSize: showFileSize, showDuration: showDuration))
 			case .updateUnitySettings(let enabled):
 				return AnyEncodable(UnitySettings(enabled: enabled))
+			case .registerPasskey(let response, let label):
+				return AnyEncodable(RegisterPasskeyRequest(response: response, label: label))
+			case .updatePlaybackSettings(let crossfadeEnabled, let crossfadeMs):
+				return AnyEncodable(UpdatePlaybackSettingsRequest(crossfadeEnabled: crossfadeEnabled, crossfadeMs: crossfadeMs))
 			default:
 				return nil
 		}
@@ -181,6 +248,16 @@ struct CreateApiTokenRequest: Encodable, Sendable {
 struct UpdateAppearanceSettingsRequest: Encodable, Sendable {
 	let showFileSize: Bool?
 	let showDuration: Bool?
+}
+
+struct RegisterPasskeyRequest: Encodable, Sendable {
+	let response: JSONValue
+	let label: String?
+}
+
+struct UpdatePlaybackSettingsRequest: Encodable, Sendable {
+	let crossfadeEnabled: Bool?
+	let crossfadeMs: Int?
 }
 
 struct UpdateMyProfileRequest: Encodable, Sendable {
