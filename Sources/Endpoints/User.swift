@@ -152,6 +152,95 @@ public enum User: NafynEndpoint {
 	///   - crossfadeMs: Crossfade length in milliseconds, clamped to 500-12000 server-side.
 	case updatePlaybackSettings(crossfadeEnabled: Bool? = nil, crossfadeMs: Int? = nil)
 
+	/// List the Apple devices (APNs tokens) the Nafyn iOS app registered for the requesting user.
+	/// Tokens themselves are never returned.
+	///
+	/// Returns `[`` AppleDevice``]`.
+	case devices
+
+	/// Register (or refresh) an APNs token from the Nafyn iOS app. The token is bound to the login making
+	/// the request: logging that session out, or revoking it, unregisters it. Call again on every launch
+	/// and whenever a token changes. Fails with a 409 when the device limit is reached.
+	///
+	/// Returns ``AppleDevice``.
+	/// - Parameters:
+	///   - token: Hex-encoded APNs token.
+	///   - kind: What the token is for. `.alert` is the regular device token; the rest are push-to-start tokens.
+	///   - environment: APNs gateway: sandbox for Xcode builds, production for TestFlight/App Store. Defaults to production server-side.
+	///   - deviceName: Up to 100 characters.
+	///   - events: Alert events this device wants. Use `.clear` for every event, `.value(_:)` to filter, or leave `.unset` to omit it.
+	case registerDevice(token: String, kind: AppleDeviceKind, environment: APNsEnvironment? = nil, deviceName: Patchable<String> = .unset, events: Patchable<[String]> = .unset)
+
+	/// Unregister one of the requesting user's Apple device tokens. That device stops receiving pushes of
+	/// that kind until the app registers again.
+	///
+	/// The response has no body — send this with ``NafynServer/sendRaw(_:)``. Fails with a 404 if `id` isn't yours.
+	/// - Parameter id: Device ID, from ``AppleDevice/id``.
+	case deleteDevice(id: String)
+
+	/// Register the update token of a running Live Activity or Now Playing remote session, so the server
+	/// can update and end it. The referenced item must belong to the caller.
+	///
+	/// The response has no body — send this with ``NafynServer/sendRaw(_:)``.
+	/// - Parameters:
+	///   - kind: What the activity belongs to.
+	///   - refId: The request ID (`.request`), release subscription ID (`.release`) or the remote session's `attributes.id` (`.nowPlaying`).
+	///   - token: Hex-encoded activity push token.
+	///   - environment: Defaults to production server-side.
+	case registerActivityToken(kind: ActivityKind, refId: String, token: String, environment: APNsEnvironment? = nil)
+
+	/// List the requesting user's own webhooks. URLs are never returned, only their host.
+	///
+	/// Returns `[`` WebhookSummary``]`.
+	case webhooks
+
+	/// Add a webhook to the requesting user's own webhooks. The URL is checked (https, public address)
+	/// before it is stored, and its service is auto-detected unless `format` says otherwise.
+	///
+	/// Returns ``WebhookSummary``.
+	/// - Parameters:
+	///   - name: Up to 100 characters.
+	///   - url: https only. Private/LAN addresses are refused.
+	///   - format: Defaults to auto-detection from the URL.
+	///   - events: Use `.clear` for every event, `.value(_:)` to filter, or leave `.unset` to omit it.
+	///   - enabled: Whether the webhook is enabled.
+	case createWebhook(name: String? = nil, url: String? = nil, format: WebhookFormat? = nil, events: Patchable<[WebhookEvent]> = .unset, enabled: Bool? = nil)
+
+	/// Edit one of the requesting user's own webhooks. Every field is optional; re-enabling a webhook that
+	/// was switched off after repeated failures clears its failure count.
+	///
+	/// Returns ``WebhookSummary``.
+	/// - Parameters:
+	///   - id: Webhook ID.
+	///   - name: Up to 100 characters.
+	///   - url: https only. Private/LAN addresses are refused.
+	///   - format: The service to deliver to.
+	///   - events: Use `.clear` for every event, `.value(_:)` to filter, or leave `.unset` to not change it.
+	///   - enabled: Whether the webhook is enabled.
+	case updateWebhook(id: String, name: String? = nil, url: String? = nil, format: WebhookFormat? = nil, events: Patchable<[WebhookEvent]> = .unset, enabled: Bool? = nil)
+
+	/// Delete one of the requesting user's own webhooks.
+	///
+	/// The response has no body — send this with ``NafynServer/sendRaw(_:)``.
+	/// - Parameter id: Webhook ID.
+	case deleteWebhook(id: String)
+
+	/// Send a sample message to one of the requesting user's own webhooks and report what the receiving service answered.
+	///
+	/// Returns ``WebhookTestResponse``.
+	/// - Parameter id: Webhook ID.
+	case testWebhook(id: String)
+
+	/// Permanently erase the requesting user's own account and every piece of data attached to it.
+	/// **Irreversible.**
+	///
+	/// Requires re-authentication. Fails with a 401 on a wrong password, a 409 if this is the instance's
+	/// last administrator while other accounts still exist, and a 429 on too many attempts.
+	///
+	/// Returns ``AccountErasedResponse``.
+	/// - Parameter password: The account's current password, or one of its API tokens.
+	case deleteAccount(password: String)
+
 	public var path: String {
 		switch self {
 			case .avatar(let id, _):
@@ -186,18 +275,32 @@ public enum User: NafynEndpoint {
 				return "/api/v1/user/export"
 			case .playbackSettings, .updatePlaybackSettings:
 				return "/api/v1/user/playback-settings"
+			case .devices, .registerDevice:
+				return "/api/v1/user/devices"
+			case .deleteDevice(let id):
+				return "/api/v1/user/devices/\(id)"
+			case .registerActivityToken:
+				return "/api/v1/user/activities"
+			case .webhooks, .createWebhook:
+				return "/api/v1/user/webhooks"
+			case .updateWebhook(let id, _, _, _, _, _), .deleteWebhook(let id):
+				return "/api/v1/user/webhooks/\(id)"
+			case .testWebhook(let id):
+				return "/api/v1/user/webhooks/\(id)/test"
+			case .deleteAccount:
+				return "/api/v1/user/me"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .avatar, .me, .apiTokens, .appearanceSettings, .sessions, .unitySettings, .passkeys, .exportAccountData, .playbackSettings:
+			case .avatar, .me, .apiTokens, .appearanceSettings, .sessions, .unitySettings, .passkeys, .exportAccountData, .playbackSettings, .devices, .webhooks:
 				return [.get]
-			case .deleteAvatar, .deleteApiToken, .deleteSession, .deletePasskey:
+			case .deleteAvatar, .deleteApiToken, .deleteSession, .deletePasskey, .deleteDevice, .deleteWebhook, .deleteAccount:
 				return [.delete]
-			case .setAvatar, .createApiToken, .passkeyRegisterOptions, .registerPasskey:
+			case .setAvatar, .createApiToken, .passkeyRegisterOptions, .registerPasskey, .registerDevice, .registerActivityToken, .createWebhook, .testWebhook:
 				return [.post]
-			case .updateProfile, .updateAppearanceSettings, .updateUnitySettings, .updatePlaybackSettings:
+			case .updateProfile, .updateAppearanceSettings, .updateUnitySettings, .updatePlaybackSettings, .updateWebhook:
 				return [.patch]
 		}
 	}
@@ -226,6 +329,15 @@ public enum User: NafynEndpoint {
 				return AnyEncodable(RegisterPasskeyRequest(response: response, label: label))
 			case .updatePlaybackSettings(let crossfadeEnabled, let crossfadeMs):
 				return AnyEncodable(UpdatePlaybackSettingsRequest(crossfadeEnabled: crossfadeEnabled, crossfadeMs: crossfadeMs))
+			case .registerDevice(let token, let kind, let environment, let deviceName, let events):
+				return AnyEncodable(RegisterDeviceRequest(token: token, kind: kind, environment: environment, deviceName: deviceName, events: events))
+			case .registerActivityToken(let kind, let refId, let token, let environment):
+				return AnyEncodable(RegisterActivityTokenRequest(kind: kind, refId: refId, token: token, environment: environment))
+			case .createWebhook(let name, let url, let format, let events, let enabled),
+				.updateWebhook(_, let name, let url, let format, let events, let enabled):
+				return AnyEncodable(WebhookInput(name: name, url: url, format: format, events: events, enabled: enabled))
+			case .deleteAccount(let password):
+				return AnyEncodable(DeleteAccountRequest(password: password))
 			default:
 				return nil
 		}
@@ -237,6 +349,46 @@ public enum User: NafynEndpoint {
 				return [.file(fieldName: "avatar", filename: filename, mimeType: mimeType, data: data)]
 			default:
 				return nil
+		}
+	}
+}
+
+struct DeleteAccountRequest: Encodable, Sendable {
+	let password: String
+}
+
+struct RegisterActivityTokenRequest: Encodable, Sendable {
+	let kind: ActivityKind
+	let refId: String
+	let token: String
+	let environment: APNsEnvironment?
+}
+
+struct RegisterDeviceRequest: Encodable, Sendable {
+	let token: String
+	let kind: AppleDeviceKind
+	let environment: APNsEnvironment?
+	let deviceName: Patchable<String>
+	let events: Patchable<[String]>
+
+	private enum CodingKeys: String, CodingKey {
+		case token, kind, environment, deviceName, events
+	}
+
+	func encode(to encoder: Encoder) throws {
+		var container = encoder.container(keyedBy: CodingKeys.self)
+		try container.encode(token, forKey: .token)
+		try container.encode(kind, forKey: .kind)
+		try container.encodeIfPresent(environment, forKey: .environment)
+		switch deviceName {
+			case .unset: break
+			case .clear: try container.encodeNil(forKey: .deviceName)
+			case .value(let value): try container.encode(value, forKey: .deviceName)
+		}
+		switch events {
+			case .unset: break
+			case .clear: try container.encodeNil(forKey: .events)
+			case .value(let value): try container.encode(value, forKey: .events)
 		}
 	}
 }

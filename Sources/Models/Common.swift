@@ -118,6 +118,9 @@ public struct Permissions: OptionSet, Codable, Sendable, Hashable {
 	/// Manage server notifications.
 	public static let manageNotifications = Permissions(rawValue: 1 << 7)
 
+	/// Manage the instance's global webhooks (`Settings.webhooks` and friends).
+	public static let manageWebhooks = Permissions(rawValue: 1 << 9)
+
 	/// Full administrative access; implicitly grants every other permission.
 	public static let admin = Permissions(rawValue: 1 << 8)
 

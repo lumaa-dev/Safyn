@@ -7,9 +7,11 @@ import Foundation
 /// For self-service actions on the requesting user's own account, see ``User``.
 public enum Users: NafynEndpoint {
 
-	/// Delete a user account and revoke all their library entries. Requires `admin`, or `manageAccounts` against a non-privileged target.
+	/// Permanently erase a user account and every piece of data attached to it (sessions, tokens, passkeys,
+	/// settings, library entries, playlists, listening data). Download requests they made are kept without
+	/// the requester. Requires `admin`, or `manageAccounts` against a non-privileged target.
 	///
-	/// Returns ``RemovedResponse``.
+	/// Returns ``AccountErasedResponse``.
 	/// - Parameter id: Target user ID.
 	case delete(id: String)
 

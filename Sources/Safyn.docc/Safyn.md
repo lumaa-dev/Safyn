@@ -55,6 +55,7 @@ ranges, `.local` mDNS hosts); anything else must use `https://`.
 - ``Request``
 - ``Search``
 - ``Settings``
+- ``Subscriptions``
 - ``Track``
 - ``User``
 - ``Users``

@@ -27,6 +27,15 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 	/// The release date, if known.
 	public let releaseDate: Date?
 
+	/// How much of ``releaseDate`` MusicBrainz actually knows; a partial date is padded to its first day.
+	public let releaseDatePrecision: ReleaseDatePrecision?
+
+	/// `false` while the release date hasn't started anywhere yet. Unreleased albums can't be requested.
+	public let released: Bool
+
+	/// Whether the requesting user follows this upcoming album (see `Subscriptions.create`).
+	public let subscribed: Bool
+
 	/// A description, if one is known.
 	public let description: String?
 
@@ -42,7 +51,7 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 	/// Black or white, whichever contrasts best (WCAG) against `imageColors[0]`.
 	public let textColor: String
 
-	public init(id: String, releaseId: String, title: String, artist: ArtistRef, type: AlbumKind?, coverArt: String?, releaseDate: Date?, description: String?, label: String?, tracks: [TrackInfo], imageColors: [String], textColor: String) {
+	public init(id: String, releaseId: String, title: String, artist: ArtistRef, type: AlbumKind?, coverArt: String?, releaseDate: Date?, releaseDatePrecision: ReleaseDatePrecision?, released: Bool, subscribed: Bool, description: String?, label: String?, tracks: [TrackInfo], imageColors: [String], textColor: String) {
 		self.id = id
 		self.releaseId = releaseId
 		self.title = title
@@ -50,6 +59,9 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 		self.type = type
 		self.coverArt = coverArt
 		self.releaseDate = releaseDate
+		self.releaseDatePrecision = releaseDatePrecision
+		self.released = released
+		self.subscribed = subscribed
 		self.description = description
 		self.label = label
 		self.tracks = tracks

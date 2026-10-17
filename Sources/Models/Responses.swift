@@ -26,6 +26,20 @@ public struct RemovedResponse: Codable, Sendable, Hashable {
 	}
 }
 
+/// The result of permanently erasing an account (`User.deleteAccount(password:)`, `Users.delete(id:)`).
+public struct AccountErasedResponse: Codable, Sendable, Hashable {
+	/// Whether the account was removed.
+	public let removed: Bool
+
+	/// Per-area count of what was erased. The spec leaves its shape open, so it's untyped.
+	public let erased: JSONValue?
+
+	public init(removed: Bool, erased: JSONValue? = nil) {
+		self.removed = removed
+		self.erased = erased
+	}
+}
+
 /// The result of removing a library track, which may also delete the underlying file.
 public struct RemovedWithFileResponse: Codable, Sendable, Hashable {
 	/// Whether the library entry was removed.
