@@ -30,13 +30,13 @@ public enum APNsEnvironment: String, Codable, Sendable, Hashable {
 ///
 /// The token itself is never returned.
 public struct AppleDevice: Codable, Sendable, Hashable, Identifiable {
-	/// The device registration's ID.
+	/// The device's ID (its login's session ID), as taken by `User.deleteDevice`.
 	public let id: String
 
-	/// What this token is used for.
-	public let kind: AppleDeviceKind
+	/// The push features this device registered a token for.
+	public let kinds: [AppleDeviceKind]
 
-	/// The APNs gateway the token belongs to.
+	/// The APNs gateway the tokens belong to.
 	public let environment: APNsEnvironment
 
 	/// A user-assigned device name, if one was given.
@@ -54,9 +54,9 @@ public struct AppleDevice: Codable, Sendable, Hashable, Identifiable {
 	/// When the device last registered, as a Unix timestamp in milliseconds.
 	public let lastSeenAt: Int64
 
-	public init(id: String, kind: AppleDeviceKind, environment: APNsEnvironment, deviceName: String?, events: [String]?, currentSession: Bool, createdAt: Int64, lastSeenAt: Int64) {
+	public init(id: String, kinds: [AppleDeviceKind], environment: APNsEnvironment, deviceName: String?, events: [String]?, currentSession: Bool, createdAt: Int64, lastSeenAt: Int64) {
 		self.id = id
-		self.kind = kind
+		self.kinds = kinds
 		self.environment = environment
 		self.deviceName = deviceName
 		self.events = events
