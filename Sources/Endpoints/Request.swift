@@ -22,6 +22,12 @@ public enum Request: NafynEndpoint {
 	/// Returns ``NafynRequest``.
 	case updateStatus(requestId: String, status: RequestStatus)
 
+	/// Delete a download request. Only the user who created it, or a user with `manageRequests`, may do this.
+	///
+	/// Returns nothing meaningful — send this with ``NafynServer/sendRaw(_:)``.
+	/// - Parameter id: Request ID.
+	case delete(id: String)
+
 	/// List download requests, paginated. Users with `manageRequests` get every request across every
 	/// user; others get only their own.
 	///
@@ -36,7 +42,7 @@ public enum Request: NafynEndpoint {
 		switch self {
 			case .create:
 				return "/api/v1/request"
-			case .get(let id):
+			case .get(let id), .delete(let id):
 				return "/api/v1/request/\(id)"
 			case .updateStatus:
 				return "/api/v1/request/status"
@@ -51,6 +57,8 @@ public enum Request: NafynEndpoint {
 				return [.post]
 			case .get, .all:
 				return [.get]
+			case .delete:
+				return [.delete]
 		}
 	}
 

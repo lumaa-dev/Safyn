@@ -210,6 +210,8 @@ public enum RequestStatus: String, Codable, Sendable, Hashable {
 	case processing
 	case completed
 	case failed
+	/// Refused by a user with `manageRequests`.
+	case denied
 }
 
 /// Whether a ``PlaylistRow`` is visible to anonymous visitors.
