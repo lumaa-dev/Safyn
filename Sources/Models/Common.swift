@@ -119,10 +119,10 @@ public struct Permissions: OptionSet, Codable, Sendable, Hashable {
 	public static let manageNotifications = Permissions(rawValue: 1 << 7)
 
 	/// Manage the instance's global webhooks (`Settings.webhooks` and friends).
-	public static let manageWebhooks = Permissions(rawValue: 1 << 9)
+	public static let manageWebhooks = Permissions(rawValue: 1 << 8)
 
 	/// Full administrative access; implicitly grants every other permission.
-	public static let admin = Permissions(rawValue: 1 << 8)
+	public static let admin = Permissions(rawValue: 1 << 9)
 
 	/// Whether this permission set includes `permission`, treating ``admin`` as granting everything.
 	public func has(_ permission: Permissions) -> Bool {
