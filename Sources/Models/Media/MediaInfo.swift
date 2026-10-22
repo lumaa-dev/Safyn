@@ -74,7 +74,14 @@ public struct MediaInfo: Codable, Sendable, Hashable {
 	/// alongside `imageColors`.
 	public let textColor: String?
 
-	public init(id: String, title: String, artist: ArtistRef, album: AlbumRef?, type: MediaKind?, coverArt: String?, releaseDate: Date?, inLibrary: Bool?, duration: Double, label: String?, relations: Relations? = nil, imageColors: [String]? = nil, textColor: String? = nil) {
+	/// `true` on at most one album/track search result: the top-ranked one, when it clears the minimum
+	/// score and clearly beats the runner-up. Only present on search results.
+	public let bestResult: Bool?
+
+	/// Score breakdown of this result. Only present on album/track search results.
+	public let match: SearchMatch?
+
+	public init(id: String, title: String, artist: ArtistRef, album: AlbumRef?, type: MediaKind?, coverArt: String?, releaseDate: Date?, inLibrary: Bool?, duration: Double, label: String?, relations: Relations? = nil, imageColors: [String]? = nil, textColor: String? = nil, bestResult: Bool? = nil, match: SearchMatch? = nil) {
 		self.id = id
 		self.title = title
 		self.artist = artist
@@ -88,5 +95,7 @@ public struct MediaInfo: Codable, Sendable, Hashable {
 		self.relations = relations
 		self.imageColors = imageColors
 		self.textColor = textColor
+		self.bestResult = bestResult
+		self.match = match
 	}
 }

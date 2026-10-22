@@ -42,3 +42,14 @@ struct SettingsTests {
 		#expect(info.totalBytes >= 0)
 	}
 }
+
+@Suite("Admin Webhook Endpoints")
+struct AdminWebhookTests {
+
+	@Test("Listing server-wide webhooks")
+	func webhooks() async throws {
+		let server = try await authenticatedServer()
+		let hooks: [WebhookSummary] = try await server.send(Settings.webhooks)
+		#expect(hooks.count >= 0)
+	}
+}

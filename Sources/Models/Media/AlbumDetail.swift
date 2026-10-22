@@ -36,6 +36,14 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 	/// Whether the requesting user follows this upcoming album (see `Subscriptions.create`).
 	public let subscribed: Bool
 
+	/// Whether the requesting user has an active request for this album (waiting or being processed);
+	/// `false` again once it completed, failed or was denied.
+	public let requested: Bool
+
+	/// Whether every track of the album is already in the requesting user's library. Such an album can't
+	/// be requested again (`Request.create` fails with 409).
+	public let inLibrary: Bool
+
 	/// A description, if one is known.
 	public let description: String?
 
@@ -51,7 +59,7 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 	/// Black or white, whichever contrasts best (WCAG) against `imageColors[0]`.
 	public let textColor: String
 
-	public init(id: String, releaseId: String, title: String, artist: ArtistRef, type: AlbumKind?, coverArt: String?, releaseDate: Date?, releaseDatePrecision: ReleaseDatePrecision?, released: Bool, subscribed: Bool, description: String?, label: String?, tracks: [TrackInfo], imageColors: [String], textColor: String) {
+	public init(id: String, releaseId: String, title: String, artist: ArtistRef, type: AlbumKind?, coverArt: String?, releaseDate: Date?, releaseDatePrecision: ReleaseDatePrecision?, released: Bool, subscribed: Bool, requested: Bool, inLibrary: Bool, description: String?, label: String?, tracks: [TrackInfo], imageColors: [String], textColor: String) {
 		self.id = id
 		self.releaseId = releaseId
 		self.title = title
@@ -62,6 +70,8 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 		self.releaseDatePrecision = releaseDatePrecision
 		self.released = released
 		self.subscribed = subscribed
+		self.requested = requested
+		self.inLibrary = inLibrary
 		self.description = description
 		self.label = label
 		self.tracks = tracks

@@ -13,15 +13,22 @@ public enum Track: NafynEndpoint {
 
 	/// Look up a track by its ISRC (International Standard Recording Code).
 	///
+	/// When no recording has this ISRC and both `title` and `artist` are given, the track is searched by
+	/// title + artist instead (same engine as ``Search/search(q:title:artist:upc:isrc:filter:limit:offset:)``)
+	/// and the best match is returned if relevant enough — ``TrackDetail/searchFallback`` is then `true`.
+	///
 	/// Returns ``TrackDetail``.
-	/// - Parameter isrc: An ISRC, e.g. `"USRC17607839"`.
-	case getByIsrc(isrc: String)
+	/// - Parameters:
+	///   - isrc: An ISRC, e.g. `"USRC17607839"`.
+	///   - title: Track title, fallback when no recording has this ISRC. Needs `artist` too.
+	///   - artist: Artist name, fallback when no recording has this ISRC. Needs `title` too.
+	case getByIsrc(isrc: String, title: String? = nil, artist: String? = nil)
 
 	public var path: String {
 		switch self {
 			case .get(let tid):
 				return "/api/v1/track/\(tid)"
-			case .getByIsrc(let isrc):
+			case .getByIsrc(let isrc, _, _):
 				return "/api/v1/track/isrc/\(isrc)"
 		}
 	}
@@ -30,6 +37,22 @@ public enum Track: NafynEndpoint {
 		switch self {
 			case .get, .getByIsrc:
 				return [.get]
+		}
+	}
+
+	public var queries: [URLQueryItem] {
+		switch self {
+			case .get:
+				return []
+			case .getByIsrc(_, let title, let artist):
+				var items: [URLQueryItem] = []
+				if let title {
+					items.append(URLQueryItem(name: "title", value: title))
+				}
+				if let artist {
+					items.append(URLQueryItem(name: "artist", value: artist))
+				}
+				return items
 		}
 	}
 }

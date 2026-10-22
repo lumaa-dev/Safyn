@@ -78,3 +78,55 @@ struct SessionTests {
 		}
 	}
 }
+
+@Suite("User Settings, Tokens & Devices")
+struct UserSettingsTests {
+
+	@Test("Listing API tokens")
+	func apiTokens() async throws {
+		let server = try await authenticatedServer()
+		let tokens: [ApiTokenSummary] = try await server.send(User.apiTokens)
+		#expect(tokens.count >= 0)
+	}
+
+	@Test("Reading appearance settings")
+	func appearanceSettings() async throws {
+		let server = try await authenticatedServer()
+		let _: AppearanceSettings = try await server.send(User.appearanceSettings)
+	}
+
+	@Test("Updating playback settings round-trips crossfade")
+	func playbackSettings() async throws {
+		let server = try await authenticatedServer()
+		let updated: PlaybackSettings = try await server.send(User.updatePlaybackSettings(crossfadeEnabled: true, crossfadeMs: 3000))
+		#expect(updated.crossfadeEnabled)
+	}
+
+	@Test("Listing passkeys")
+	func passkeys() async throws {
+		let server = try await authenticatedServer()
+		let passkeys: [PasskeySummary] = try await server.send(User.passkeys)
+		#expect(passkeys.count >= 0)
+	}
+
+	@Test("Listing registered Apple devices")
+	func devices() async throws {
+		let server = try await authenticatedServer()
+		let devices: [AppleDevice] = try await server.send(User.devices)
+		#expect(devices.count >= 0)
+	}
+
+	@Test("Listing the user's webhooks")
+	func webhooks() async throws {
+		let server = try await authenticatedServer()
+		let hooks: [WebhookSummary] = try await server.send(User.webhooks)
+		#expect(hooks.count >= 0)
+	}
+
+	@Test("Exporting account data returns data")
+	func exportAccountData() async throws {
+		let server = try await authenticatedServer()
+		let data = try await server.sendRaw(User.exportAccountData)
+		#expect(!data.isEmpty)
+	}
+}

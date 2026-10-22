@@ -2,7 +2,7 @@
 
 import Foundation
 
-/// Search results across albums, tracks, and artists, returned by `Search.search(q:filter:limit:offset:)`.
+/// Search results across albums, tracks, and artists, returned by `Search.search(q:title:artist:upc:isrc:filter:limit:offset:)`.
 public struct SearchResult: Codable, Sendable, Hashable {
 	/// Matching albums.
 	public let albums: [MediaInfo]
