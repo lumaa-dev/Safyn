@@ -69,6 +69,13 @@ struct LibraryTests {
 		#expect(!data.isEmpty)
 	}
 
+	@Test("Fetching a Cover Art Archive cover through the cache")
+	func coverArt() async throws {
+		let server = try await authenticatedServer()
+		let data: Data = try await server.sendRaw(Library.coverArt(type: .releaseGroup, id: "some-release-group-id", size: .medium))
+		#expect(!data.isEmpty)
+	}
+
 	@Test("Listing recently played items")
 	func recentlyPlayed() async throws {
 		let server = try await authenticatedServer()

@@ -153,6 +153,44 @@ struct OfflineTests {
 		#expect(query(Content.privacyNotice(locale: "fr")) == ["locale": "fr"])
 	}
 
+	@Test("Request.all sends only the filters given")
+	func requestFilterQueries() {
+		#expect(Request.all().queries.isEmpty)
+		let sent = query(Request.all(limit: 5, offset: 10, succeeded: false, failed: true, waiting: false, processing: true))
+		#expect(sent == ["limit": "5", "offset": "10", "succeeded": "false", "failed": "true", "waiting": "false", "processing": "true"])
+		#expect(query(Request.all(succeeded: false)) == ["succeeded": "false"])
+	}
+
+	@Test("Download limit endpoints use the right path, methods and body")
+	func downloadLimitShape() throws {
+		#expect(Settings.downloadLimit.path == "/api/v1/settings/downloads")
+		#expect(Settings.downloadLimit.methods == [.get])
+		#expect(Settings.downloadLimit.body == nil)
+		#expect(Settings.setDownloadLimit(maxConcurrent: 4).path == "/api/v1/settings/downloads")
+		#expect(Settings.setDownloadLimit(maxConcurrent: 4).methods == [.patch])
+		let body = try #require(Settings.setDownloadLimit(maxConcurrent: 4).body)
+		let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: Int]
+		#expect(json == ["maxConcurrent": 4])
+	}
+
+	@Test("Download limit response decodes")
+	func downloadLimitDecoding() throws {
+		let limit = try decoder().decode(DownloadLimitResponse.self, from: Data(#"{"maxConcurrent": 3}"#.utf8))
+		#expect(limit.maxConcurrent == 3)
+	}
+
+	@Test("Cover art endpoint builds its path and optional token")
+	func coverArtShape() {
+		let release = Library.coverArt(type: .release, id: "abc", size: .medium)
+		#expect(release.path == "/api/v1/art/release/abc/500")
+		#expect(release.methods == [.get])
+		#expect(release.queries.isEmpty)
+		let group = Library.coverArt(type: .releaseGroup, id: "abc", size: .small, token: "t")
+		#expect(group.path == "/api/v1/art/release-group/abc/250")
+		#expect(query(group) == ["token": "t"])
+		#expect(Library.coverArt(type: .release, id: "abc", size: .large).path.hasSuffix("/1000"))
+	}
+
 	@Test("Artist endpoint path")
 	func artistPath() {
 		#expect(Artist.get(aid: "abc").path == "/api/v1/artist/abc")

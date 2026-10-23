@@ -43,4 +43,11 @@ struct RequestTests {
 		#expect(firstPage.count <= 2)
 		#expect(secondPage.count <= 2)
 	}
+
+	@Test("Listing download requests with status filters")
+	func allFiltered() async throws {
+		let server = try await authenticatedServer()
+		let requests: [NafynRequest] = try await server.send(Request.all(succeeded: false, failed: false))
+		#expect(!requests.contains { $0.status == .completed || $0.status == .failed })
+	}
 }

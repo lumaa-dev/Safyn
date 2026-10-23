@@ -36,7 +36,11 @@ public enum Request: NafynEndpoint {
 	/// - Parameters:
 	///   - limit: Maximum number of results to return.
 	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
-	case all(limit: Int? = nil, offset: Int? = nil)
+	///   - succeeded: Include completed requests; `false` leaves them out. Defaults to `true` server-side.
+	///   - failed: Include failed requests; `false` leaves them out. Defaults to `true` server-side.
+	///   - waiting: Include requests waiting for a manager to accept them; `false` leaves them out. Defaults to `true` server-side.
+	///   - processing: Include requests being worked on (searching, downloading, processing); `false` leaves them out. Defaults to `true` server-side.
+	case all(limit: Int? = nil, offset: Int? = nil, succeeded: Bool? = nil, failed: Bool? = nil, waiting: Bool? = nil, processing: Bool? = nil)
 
 	public var path: String {
 		switch self {
@@ -64,13 +68,25 @@ public enum Request: NafynEndpoint {
 
 	public var queries: [URLQueryItem] {
 		switch self {
-			case .all(let limit, let offset):
+			case .all(let limit, let offset, let succeeded, let failed, let waiting, let processing):
 				var items: [URLQueryItem] = []
 				if let limit {
 					items.append(URLQueryItem(name: "limit", value: String(limit)))
 				}
 				if let offset {
 					items.append(URLQueryItem(name: "offset", value: String(offset)))
+				}
+				if let succeeded {
+					items.append(URLQueryItem(name: "succeeded", value: String(succeeded)))
+				}
+				if let failed {
+					items.append(URLQueryItem(name: "failed", value: String(failed)))
+				}
+				if let waiting {
+					items.append(URLQueryItem(name: "waiting", value: String(waiting)))
+				}
+				if let processing {
+					items.append(URLQueryItem(name: "processing", value: String(processing)))
 				}
 				return items
 			default:

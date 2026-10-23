@@ -41,6 +41,20 @@ struct SettingsTests {
 		let info: StorageInfo = try await server.send(Settings.storage)
 		#expect(info.totalBytes >= 0)
 	}
+
+	@Test("Fetching the concurrent request limit")
+	func downloadLimit() async throws {
+		let server = try await authenticatedServer()
+		let limit: DownloadLimitResponse = try await server.send(Settings.downloadLimit)
+		#expect(limit.maxConcurrent >= 1)
+	}
+
+	@Test("Setting the concurrent request limit")
+	func setDownloadLimit() async throws {
+		let server = try await authenticatedServer()
+		let limit: DownloadLimitResponse = try await server.send(Settings.setDownloadLimit(maxConcurrent: 3))
+		#expect(limit.maxConcurrent == 3)
+	}
 }
 
 @Suite("Admin Webhook Endpoints")

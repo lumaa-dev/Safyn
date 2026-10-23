@@ -162,6 +162,16 @@ public struct ReorderedResponse: Codable, Sendable, Hashable {
 	}
 }
 
+/// The instance's concurrent request limit, from `Settings.downloadLimit`/`Settings.setDownloadLimit(maxConcurrent:)`.
+public struct DownloadLimitResponse: Codable, Sendable, Hashable {
+	/// How many requests may search/download/process at once; the rest queue.
+	public let maxConcurrent: Int
+
+	public init(maxConcurrent: Int) {
+		self.maxConcurrent = maxConcurrent
+	}
+}
+
 /// Whether open registration is currently allowed, from `Settings.registrationOpen()`/`Settings.setRegistrationOpen(_:)`.
 public struct RegistrationOpenResponse: Codable, Sendable, Hashable {
 	/// Whether `/register` currently allows sign-up without a registration token.

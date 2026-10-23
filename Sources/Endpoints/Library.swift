@@ -113,6 +113,18 @@ public enum Library: NafynEndpoint {
 	///   - token: Auth token, as a fallback for clients that can't set the Authorization header (e.g. `<img>` elements).
 	case cover(id: String, token: String? = nil)
 
+	/// Get a Cover Art Archive front cover through Nafyn's cache (`image/jpeg`).
+	///
+	/// Returns raw `Data` — send this with ``NafynServer/sendRaw(_:)``, not ``NafynServer/send(_:)``. The server
+	/// answers `404` when the archive has no cover and `504` when it isn't cached yet and the archive was too
+	/// slow; retry the latter shortly.
+	/// - Parameters:
+	///   - type: Whether `id` is a MusicBrainz release or release-group ID.
+	///   - id: MusicBrainz release / release-group ID.
+	///   - size: Thumbnail edge in pixels.
+	///   - token: Auth token, as a fallback for clients that can't set the Authorization header (e.g. `<img>` elements).
+	case coverArt(type: CoverArtKind, id: String, size: CoverArtSize, token: String? = nil)
+
 	/// Upload a cover image (PNG/JPEG/WebP) for a library track.
 	///
 	/// Returns ``MediaRow``.
@@ -181,6 +193,8 @@ public enum Library: NafynEndpoint {
 				return "/api/v1/library/\(id)"
 			case .cover(let id, _), .setCover(let id, _, _, _), .deleteCover(let id):
 				return "/api/v1/library/\(id)/cover"
+			case .coverArt(let type, let id, let size, _):
+				return "/api/v1/art/\(type.rawValue)/\(id)/\(size.rawValue)"
 			case .importTrack:
 				return "/api/v1/library/import"
 		}
@@ -190,7 +204,7 @@ public enum Library: NafynEndpoint {
 		switch self {
 			case .remove, .removeForUser, .deleteCover, .deleteLyrics:
 				return [.delete]
-			case .lyrics, .stream, .album, .albums, .all, .recentlyPlayed, .track, .tracks, .cover:
+			case .lyrics, .stream, .album, .albums, .all, .recentlyPlayed, .track, .tracks, .cover, .coverArt:
 				return [.get]
 			case .recordRecentlyPlayed, .importTrack:
 				return [.post]
@@ -206,7 +220,7 @@ public enum Library: NafynEndpoint {
 			case .stream(_, let token, _):
 				guard let token else { return [] }
 				return [URLQueryItem(name: "token", value: token)]
-			case .cover(_, let token):
+			case .cover(_, let token), .coverArt(_, _, _, let token):
 				guard let token else { return [] }
 				return [URLQueryItem(name: "token", value: token)]
 			case .albums(let limit, let offset), .tracks(let limit, let offset):
@@ -272,6 +286,22 @@ public enum Library: NafynEndpoint {
 				return nil
 		}
 	}
+}
+
+/// Which kind of MusicBrainz ID `Library.coverArt(type:id:size:token:)` is given.
+public enum CoverArtKind: String, Codable, Sendable, Hashable {
+	/// A MusicBrainz release ID.
+	case release
+
+	/// A MusicBrainz release-group ID.
+	case releaseGroup = "release-group"
+}
+
+/// The thumbnail edge, in pixels, that `Library.coverArt(type:id:size:token:)` accepts.
+public enum CoverArtSize: Int, Codable, Sendable, Hashable {
+	case small = 250
+	case medium = 500
+	case large = 1000
 }
 
 /// The lyrics format accepted by `Library.setLyrics(id:content:format:)`.
