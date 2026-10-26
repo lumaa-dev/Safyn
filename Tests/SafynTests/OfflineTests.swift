@@ -128,12 +128,16 @@ struct OfflineTests {
 		{"id":"a1","releaseId":"r1","title":"RAM","artist":"Daft Punk","type":"album","coverArt":null,
 		 "imageColors":["#000000"],"textColor":"white","releaseDate":null,"releaseDatePrecision":"year",
 		 "released":true,"subscribed":false,"requested":true,"inLibrary":false,"description":null,"label":null,
-		 "tracks":[{"id":"t1","title":"Get Lucky","trackNumber":8,"duration":248,"releaseDate":null,"released":true,"inLibrary":true,"requested":false,"mediaId":null}]}
+		 "discs":[{"number":1,"title":null},{"number":2,"title":"Bonus"}],
+		 "tracks":[{"id":"t1","title":"Get Lucky","trackNumber":8,"discNumber":2,"duration":248,"releaseDate":null,"released":true,"inLibrary":true,"requested":false,"mediaId":null}]}
 		"""
 		let album = try decoder().decode(AlbumDetail.self, from: Data(json.utf8))
 		#expect(album.requested)
 		#expect(!album.inLibrary)
 		#expect(album.tracks.first?.inLibrary == true)
+		#expect(album.discs.map(\.number) == [1, 2])
+		#expect(album.discs.last?.title == "Bonus")
+		#expect(album.tracks.first?.discNumber == 2)
 	}
 
 	// MARK: - Other endpoints

@@ -50,7 +50,10 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 	/// The record label, if known.
 	public let label: String?
 
-	/// The album's tracklist.
+	/// One entry per disc, in order. Only show disc headers when there is more than one.
+	public let discs: [DiscInfo]
+
+	/// The album's tracklist, across all discs. Group by ``TrackInfo/discNumber`` for multi-disc albums.
 	public let tracks: [TrackInfo]
 
 	/// Dominant colors extracted from `coverArt`, most-dominant first.
@@ -59,7 +62,7 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 	/// Black or white, whichever contrasts best (WCAG) against `imageColors[0]`.
 	public let textColor: String
 
-	public init(id: String, releaseId: String, title: String, artist: ArtistRef, type: AlbumKind?, coverArt: String?, releaseDate: Date?, releaseDatePrecision: ReleaseDatePrecision?, released: Bool, subscribed: Bool, requested: Bool, inLibrary: Bool, description: String?, label: String?, tracks: [TrackInfo], imageColors: [String], textColor: String) {
+	public init(id: String, releaseId: String, title: String, artist: ArtistRef, type: AlbumKind?, coverArt: String?, releaseDate: Date?, releaseDatePrecision: ReleaseDatePrecision?, released: Bool, subscribed: Bool, requested: Bool, inLibrary: Bool, description: String?, label: String?, discs: [DiscInfo], tracks: [TrackInfo], imageColors: [String], textColor: String) {
 		self.id = id
 		self.releaseId = releaseId
 		self.title = title
@@ -74,6 +77,7 @@ public struct AlbumDetail: Codable, Sendable, Hashable {
 		self.inLibrary = inLibrary
 		self.description = description
 		self.label = label
+		self.discs = discs
 		self.tracks = tracks
 		self.imageColors = imageColors
 		self.textColor = textColor

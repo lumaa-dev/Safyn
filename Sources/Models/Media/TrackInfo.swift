@@ -10,8 +10,11 @@ public struct TrackInfo: Codable, Sendable, Hashable {
 	/// The track's title.
 	public let title: String
 
-	/// The track's position within the release.
+	/// The track's position within its disc. A multi-disc album repeats the numbers once per disc.
 	public let trackNumber: Double
+
+	/// The disc the track is on; see ``AlbumDetail/discs``.
+	public let discNumber: Double
 
 	/// The track's duration, in seconds.
 	public let duration: Double
@@ -31,10 +34,11 @@ public struct TrackInfo: Codable, Sendable, Hashable {
 	/// Nafyn's internal media ID, if this recording has been downloaded by anyone.
 	public let mediaId: String?
 
-	public init(id: String, title: String, trackNumber: Double, duration: Double, releaseDate: Date?, released: Bool, inLibrary: Bool, requested: Bool, mediaId: String?) {
+	public init(id: String, title: String, trackNumber: Double, discNumber: Double, duration: Double, releaseDate: Date?, released: Bool, inLibrary: Bool, requested: Bool, mediaId: String?) {
 		self.id = id
 		self.title = title
 		self.trackNumber = trackNumber
+		self.discNumber = discNumber
 		self.duration = duration
 		self.releaseDate = releaseDate
 		self.released = released
