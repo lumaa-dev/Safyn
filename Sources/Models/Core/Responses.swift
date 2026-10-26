@@ -96,11 +96,15 @@ public struct LibraryAlbumResponse: Codable, Sendable, Hashable {
 	/// The album's metadata.
 	public let album: Album
 
+	/// One entry per disc, in order, if the server sends it. Only show disc headers when there is more than one.
+	public let discs: [DiscInfo]?
+
 	/// The tracks from this album the requesting user owns.
 	public let tracks: [MediaRow]
 
-	public init(album: Album, tracks: [MediaRow]) {
+	public init(album: Album, discs: [DiscInfo]? = nil, tracks: [MediaRow]) {
 		self.album = album
+		self.discs = discs
 		self.tracks = tracks
 	}
 }

@@ -140,6 +140,34 @@ struct OfflineTests {
 		#expect(album.tracks.first?.discNumber == 2)
 	}
 
+	@Test("Library album response decodes optional disc info")
+	func libraryAlbumDiscs() throws {
+		let album = """
+		{"id":"a1","mbId":"a1","title":"RAM","artistName":"Daft Punk","artistMbid":null,"coverArt":null,
+		 "releaseDate":null,"duration":1,"trackCount":1,"addedAt":0,"imageColors":[],"textColor":"white"}
+		"""
+		let track = """
+		{"id":"m1","musicbrainzId":"t1","title":"X","artistName":"Y","artistMbid":null,"album":"RAM","albumId":"a1",
+		 "albumType":"album","coverArt":null,"releaseDate":null,"duration":1,"label":null,"fingerprint":null,
+		 "amId":null,"fileSize":null,"addedAt":0
+		"""
+		let withDiscs = """
+		{"album":\(album),"discs":[{"number":1,"title":null},{"number":2,"title":"Bonus"}],
+		 "tracks":[\(track),"discNumber":2,"trackNumber":3}]}
+		"""
+		let decoded = try decoder().decode(LibraryAlbumResponse.self, from: Data(withDiscs.utf8))
+		#expect(decoded.discs?.map(\.number) == [1, 2])
+		#expect(decoded.tracks.first?.discNumber == 2)
+		#expect(decoded.tracks.first?.trackNumber == 3)
+
+		let without = """
+		{"album":\(album),"tracks":[\(track)}]}
+		"""
+		let plain = try decoder().decode(LibraryAlbumResponse.self, from: Data(without.utf8))
+		#expect(plain.discs == nil)
+		#expect(plain.tracks.first?.discNumber == nil)
+	}
+
 	// MARK: - Other endpoints
 
 	@Test("Subscriptions endpoints use the right paths and methods")

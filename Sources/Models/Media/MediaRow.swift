@@ -31,6 +31,12 @@ public struct MediaRow: Codable, Sendable, Hashable {
 	/// A cover art URL, if known.
 	public let coverArt: String?
 
+	/// The track's position within its disc, if the server sends it. A multi-disc album repeats the numbers once per disc.
+	public let trackNumber: Double?
+
+	/// The disc the track is on, if the server sends it; see ``LibraryAlbumResponse/discs``.
+	public let discNumber: Double?
+
 	/// The release date, as a Unix timestamp in seconds, if known.
 	public let releaseDate: Int64?
 
@@ -52,7 +58,7 @@ public struct MediaRow: Codable, Sendable, Hashable {
 	/// When this track was added to the library, as a Unix timestamp in milliseconds.
 	public let addedAt: Int64
 
-	public init(id: String, musicbrainzId: String, title: String, artistName: String, artistMbid: String?, album: String?, albumId: String, albumType: AlbumKind?, coverArt: String?, releaseDate: Int64?, duration: Double, label: String?, fingerprint: String?, amId: String?, fileSize: Int64?, addedAt: Int64) {
+	public init(id: String, musicbrainzId: String, title: String, artistName: String, artistMbid: String?, album: String?, albumId: String, albumType: AlbumKind?, coverArt: String?, releaseDate: Int64?, duration: Double, label: String?, fingerprint: String?, amId: String?, fileSize: Int64?, addedAt: Int64, trackNumber: Double? = nil, discNumber: Double? = nil) {
 		self.id = id
 		self.musicbrainzId = musicbrainzId
 		self.title = title
@@ -69,6 +75,8 @@ public struct MediaRow: Codable, Sendable, Hashable {
 		self.amId = amId
 		self.fileSize = fileSize
 		self.addedAt = addedAt
+		self.trackNumber = trackNumber
+		self.discNumber = discNumber
 	}
 
 	/// `releaseDate` converted to a `Date`, if known.
