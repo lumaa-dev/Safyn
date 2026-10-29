@@ -77,6 +77,62 @@ struct OfflineTests {
 		#expect(sent == ["title": "Get Lucky", "artist": "Daft Punk"])
 	}
 
+	@Test("ISRC lookup sends the duration, and a nil ISRC goes to the placeholder path")
+	func isrcDurationAndNil() {
+		let sent = query(Track.getByIsrc(isrc: nil, title: "Get Lucky", artist: "Daft Punk", duration: 248))
+		#expect(sent == ["title": "Get Lucky", "artist": "Daft Punk", "duration": "248"])
+		#expect(Track.getByIsrc(isrc: nil, title: "Get Lucky", artist: "Daft Punk").path == "/api/v1/track/isrc/ZZZZZ0000000")
+	}
+
+	// MARK: - Import
+
+	@Test("Import endpoints: paths, methods, queries")
+	func importShape() {
+		let create = Import.create(tracks: [ImportTrack(isrc: "USQX91300108", title: "Get Lucky", artist: "Daft Punk")], source: "apple-music")
+		#expect(create.path == "/api/v1/import")
+		#expect(create.methods == [.post])
+		#expect(create.queries.isEmpty)
+		#expect(Import.get(id: "abc").path == "/api/v1/import/abc")
+		#expect(Import.get(id: "abc").methods == [.get])
+		#expect(query(Import.all(page: 2, limit: 10)) == ["page": "2", "limit": "10"])
+		#expect(Import.all().queries.isEmpty)
+	}
+
+	@Test("Import body carries the tracks and leaves out what is nil")
+	func importBody() throws {
+		let create = Import.create(tracks: [ImportTrack(isrc: nil, title: "Get Lucky", artist: "Daft Punk", duration: 248)], source: "apple-music", name: "Mix")
+		let body = try #require(create.body)
+		let json = try #require(try JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: Any])
+		#expect(json["source"] as? String == "apple-music")
+		#expect(json["name"] as? String == "Mix")
+		let track = try #require((json["tracks"] as? [[String: Any]])?.first)
+		#expect(track["title"] as? String == "Get Lucky")
+		#expect(track["duration"] as? Int == 248)
+		#expect(track["isrc"] == nil)
+	}
+
+	@Test("An import decodes its counts and items, unknown statuses included")
+	func importDecoding() throws {
+		let json = """
+		{"id":"i1","source":"apple-music","name":null,"status":"running","total":3,"processed":2,
+		 "counts":{"pending":1,"requested":1,"not-found":1},"createdAt":1793000000,"updatedAt":1793000060,
+		 "items":[
+		  {"position":0,"isrc":"USQX91300108","title":"Get Lucky","artist":"Daft Punk","album":null,"duration":248,"status":"requested","musicbrainzId":"r1","requestId":"q1","via":"isrc","message":null},
+		  {"position":1,"isrc":null,"title":"x","artist":"y","album":null,"duration":null,"status":"not-found","musicbrainzId":null,"requestId":null,"via":null,"message":"No matching recording"},
+		  {"position":2,"isrc":null,"title":"z","artist":"w","album":null,"duration":null,"status":"brand-new","musicbrainzId":null,"requestId":null,"via":"telepathy","message":null}
+		 ]}
+		"""
+		let job = try decoder().decode(PlaylistImport.self, from: Data(json.utf8))
+		#expect(job.status == .running)
+		#expect(job.counts.notFound == 1)
+		#expect(job.counts.alreadyRequested == 0)
+		let items = try #require(job.items)
+		#expect(items.map(\.status) == [.requested, .notFound, .unknown])
+		#expect(items[0].via == .isrc)
+		#expect(items[2].via == .unknown)
+		#expect(job.createdDate == Date(timeIntervalSince1970: 1793000000))
+	}
+
 	@Test("Track.get has no queries")
 	func trackGetQueries() {
 		#expect(Track.get(tid: "abc").queries.isEmpty)
