@@ -167,6 +167,13 @@ public enum Library: NafynEndpoint {
 	///   - metadata: A JSON object string with any of: `title`, `artist`, `album`, `albumType`, `duration`, `trackNumber`, `releaseDate`, `label`, `lyrics`.
 	case importTrack(audio: Data, audioFilename: String, audioMimeType: String, cover: Data? = nil, coverFilename: String = "cover.jpg", coverMimeType: String = "image/jpeg", metadata: String? = nil)
 
+	/// List the cover art available for an album, from its MusicBrainz release-group: the group's own
+	/// front cover plus the front cover of each release that has one.
+	///
+	/// Returns ``CoverOptionsResponse``. Store a chosen ``CoverOption/url`` as `coverArt` with ``editMetadata(id:title:artistName:album:albumType:releaseDate:duration:label:trackNumber:coverArt:)``.
+	/// - Parameter albumId: MusicBrainz release-group ID (the `albumId` of a track).
+	case coverOptions(albumId: String)
+
 	public var path: String {
 		switch self {
 			case .remove(let id):
@@ -197,6 +204,8 @@ public enum Library: NafynEndpoint {
 				return "/api/v1/art/\(type.rawValue)/\(id)/\(size.rawValue)"
 			case .importTrack:
 				return "/api/v1/library/import"
+			case .coverOptions:
+				return "/api/v1/library/cover-options"
 		}
 	}
 
@@ -204,7 +213,7 @@ public enum Library: NafynEndpoint {
 		switch self {
 			case .remove, .removeForUser, .deleteCover, .deleteLyrics:
 				return [.delete]
-			case .lyrics, .stream, .album, .albums, .all, .recentlyPlayed, .track, .tracks, .cover, .coverArt:
+			case .lyrics, .stream, .album, .albums, .all, .recentlyPlayed, .track, .tracks, .cover, .coverArt, .coverOptions:
 				return [.get]
 			case .recordRecentlyPlayed, .importTrack:
 				return [.post]
@@ -241,6 +250,8 @@ public enum Library: NafynEndpoint {
 					items.append(URLQueryItem(name: "limit", value: String(limit)))
 				}
 				return items
+			case .coverOptions(let albumId):
+				return [URLQueryItem(name: "albumId", value: albumId)]
 			default:
 				return []
 		}

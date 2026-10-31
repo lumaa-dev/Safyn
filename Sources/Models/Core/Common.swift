@@ -196,6 +196,13 @@ public enum RecentEntryKind: String, Codable, Sendable, Hashable {
 	case playlist
 }
 
+/// The kind of item `Pins.pin`/`Pins.unpin` act on, and that a ``PinnedItem`` is.
+public enum PinKind: String, Codable, Sendable, Hashable {
+	case album
+	case playlist
+	case track
+}
+
 /// The kind of media a ``NafynRequest`` is for, or that `Request.create` creates.
 public enum RequestKind: String, Codable, Sendable, Hashable {
 	case album

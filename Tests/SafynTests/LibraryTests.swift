@@ -90,6 +90,13 @@ struct LibraryTests {
 		#expect(response.recorded)
 	}
 
+	@Test("Listing cover options for an unknown album")
+	func coverOptions() async throws {
+		let server = try await authenticatedServer()
+		let response: CoverOptionsResponse = try await server.send(Library.coverOptions(albumId: "b84ee12a-09ef-421b-82de-0441a926375b"))
+		#expect(response.options.count >= 0)
+	}
+
 	@Test("Removing a track from the authenticated user's own library")
 	func remove() async throws {
 		let server = try await authenticatedServer()

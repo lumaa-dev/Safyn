@@ -284,6 +284,71 @@ struct OfflineTests {
 		#expect(Artist.get(aid: "abc").path == "/api/v1/artist/abc")
 	}
 
+	@Test("Artist image endpoint path")
+	func artistImagePath() {
+		#expect(Artist.image(aid: "abc").path == "/api/v1/artist/abc/image")
+		#expect(Artist.image(aid: "abc").methods == [.get])
+	}
+
+	@Test("Cover options endpoint sends albumId")
+	func coverOptionsShape() {
+		let endpoint = Library.coverOptions(albumId: "abc")
+		#expect(endpoint.path == "/api/v1/library/cover-options")
+		#expect(endpoint.methods == [.get])
+		#expect(query(endpoint) == ["albumId": "abc"])
+	}
+
+	@Test("Pins endpoints use the right paths, methods, queries and body")
+	func pinsShape() throws {
+		#expect(Pins.list.path == "/api/v1/pins")
+		#expect(Pins.list.methods == [.get])
+		#expect(Pins.list.queries.isEmpty)
+		let pin = Pins.pin(kind: .playlist, refId: "p1")
+		#expect(pin.path == "/api/v1/pins")
+		#expect(pin.methods == [.post])
+		#expect(pin.queries.isEmpty)
+		let body = try #require(pin.body)
+		let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: String]
+		#expect(json == ["kind": "playlist", "refId": "p1"])
+		let unpin = Pins.unpin(kind: .track, refId: "t1")
+		#expect(unpin.methods == [.delete])
+		#expect(unpin.body == nil)
+		#expect(query(unpin) == ["kind": "track", "refId": "t1"])
+	}
+
+	@Test("Profile endpoint path")
+	func profilePath() {
+		#expect(Users.profile(username: "lumaa").path == "/api/v1/profile/lumaa")
+		#expect(Users.profile(username: "lumaa").methods == [.get])
+	}
+
+	@Test("Pinned items, cover options, artist image and profiles decode")
+	func newModelsDecoding() throws {
+		let pins = try decoder().decode([PinnedItem].self, from: Data(#"""
+		[{"kind":"playlist","refId":"p1","pinnedAt":1700000000000,"title":"Mix","subtitle":null,"href":"/playlist/p1","isOwner":true,"isMember":false,"playlistImage":"v2"},
+		 {"kind":"track","refId":"t1","pinnedAt":1700000001000,"title":"Song","href":"/track/t1","coverMediaId":"t1","media":{"id":"t1"}}]
+		"""#.utf8))
+		#expect(pins.count == 2)
+		#expect(pins[0].kind == .playlist && pins[0].isOwner == true && pins[0].playlistImage == "v2")
+		#expect(pins[1].kind == .track && pins[1].media != nil && pins[1].isOwner == nil)
+		#expect(pins[1].pinnedAtDate.timeIntervalSince1970 == 1_700_000_001)
+
+		let options = try decoder().decode(CoverOptionsResponse.self, from: Data(#"""
+		{"options":[{"id":"g","kind":"release-group","title":"A","url":"https://x/g.jpg"},{"id":"r","kind":"release","title":"A","details":"2020, FR","url":"https://x/r.jpg"}]}
+		"""#.utf8))
+		#expect(options.options.map(\.kind) == [.releaseGroup, .release])
+		#expect(options.options[1].details == "2020, FR")
+
+		#expect(try decoder().decode(ArtistImageResponse.self, from: Data(#"{"image":null}"#.utf8)).image == nil)
+		#expect(try decoder().decode(PinResponse.self, from: Data(#"{"pinned":true}"#.utf8)).pinned == true)
+
+		let profile = try decoder().decode(UserProfile.self, from: Data(#"""
+		{"id":"u","username":"lumaa","displayName":null,"avatar":"v1","lastFm":"l","trackCount":42,
+		 "playlists":[{"id":"p","title":"Mix","description":null,"trackCount":3,"updatedAt":1700000000000}]}
+		"""#.utf8))
+		#expect(profile.trackCount == 42 && profile.discogs == nil && profile.playlists.first?.trackCount == 3)
+	}
+
 	// MARK: - Sockets
 
 	@Test("Unity socket requires an auth token")

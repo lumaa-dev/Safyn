@@ -45,6 +45,13 @@ public enum Users: NafynEndpoint {
 	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
 	case all(limit: Int? = nil, offset: Int? = nil)
 
+	/// Get the public profile of a user, by username: display name, avatar version, Last.fm / Discogs
+	/// handles, the number of tracks in their library and their public playlists.
+	///
+	/// No authentication needed. Returns ``UserProfile``. A 400 means not a valid username; a 404, no such user.
+	/// - Parameter username: The username (not the display name).
+	case profile(username: String)
+
 	public var path: String {
 		switch self {
 			case .delete(let id), .update(let id, _, _, _, _, _):
@@ -53,6 +60,8 @@ public enum Users: NafynEndpoint {
 				return "/api/v1/users/\(id)/avatar"
 			case .all:
 				return "/api/v1/users"
+			case .profile(let username):
+				return "/api/v1/profile/\(username)"
 		}
 	}
 
@@ -64,7 +73,7 @@ public enum Users: NafynEndpoint {
 				return [.patch]
 			case .setAvatar:
 				return [.post]
-			case .all:
+			case .all, .profile:
 				return [.get]
 		}
 	}

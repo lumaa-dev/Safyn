@@ -12,16 +12,26 @@ public enum Artist: NafynEndpoint {
 	/// - Parameter aid: MusicBrainz artist ID.
 	case get(aid: String)
 
+	/// Get an artist's picture: the Last.fm profile photo MusicBrainz links to the artist, else TheAudioDB,
+	/// then Last.fm.
+	///
+	/// Returns ``ArtistImageResponse``, whose ``ArtistImageResponse/image`` is `nil` when none has one.
+	/// A 429 means too many lookups; a 503 means MusicBrainz is unavailable.
+	/// - Parameter aid: MusicBrainz artist ID.
+	case image(aid: String)
+
 	public var path: String {
 		switch self {
 			case .get(let aid):
 				return "/api/v1/artist/\(aid)"
+			case .image(let aid):
+				return "/api/v1/artist/\(aid)/image"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .get:
+			case .get, .image:
 				return [.get]
 		}
 	}

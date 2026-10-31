@@ -51,6 +51,7 @@ ranges, `.local` mDNS hosts); anything else must use `https://`.
 - ``Artist``
 - ``Auth``
 - ``Library``
+- ``Pins``
 - ``Playlist``
 - ``Request``
 - ``Search``

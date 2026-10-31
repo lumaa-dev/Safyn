@@ -48,6 +48,14 @@ struct UsersTests {
 		#expect(updated.avatar != nil)
 	}
 
+	@Test("Fetching a public profile for an unknown username fails")
+	func profileMissing() async throws {
+		let server = try await authenticatedServer()
+		await #expect(throws: NafynError.self) {
+			let _: UserProfile = try await server.send(Users.profile(username: "no-such-user-safyn"))
+		}
+	}
+
 	@Test("Deleting a user account")
 	func delete() async throws {
 		let server = try await authenticatedServer()
