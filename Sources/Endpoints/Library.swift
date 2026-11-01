@@ -20,7 +20,7 @@ public enum Library: NafynEndpoint {
 	///   - userId: ID of the user whose library entry is being removed.
 	case removeForUser(id: String, userId: String)
 
-	/// Get synced lyrics for a library track, tried across providers (Cider, LRCLIB) in order until one has a match.
+	/// Get synced lyrics for a library track, tried across providers (Better Lyrics, Unison, Cider, LRCLIB) in order until one has a match. Word-timed (karaoke) lyrics carry `segments` on their lines. Answers are cached by the server for 20 minutes.
 	///
 	/// Returns ``Lyrics``.
 	/// - Parameter id: Media ID.
@@ -49,7 +49,9 @@ public enum Library: NafynEndpoint {
 	/// - Parameters:
 	///   - limit: Maximum number of results to return.
 	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
-	case albums(limit: Int? = nil, offset: Int? = nil)
+	///   - query: Search text: every word has to be found in the album's title or in the artist of one of its tracks. Empty is the same as `nil`.
+	///   - sort: The order of the list. Defaults to ``LibrarySort/added`` server-side when omitted.
+	case albums(limit: Int? = nil, offset: Int? = nil, query: String? = nil, sort: LibrarySort? = nil)
 
 	/// List every media row across every user's library, with owner usernames. Paginated. Requires `manageMusic`.
 	///
@@ -86,7 +88,9 @@ public enum Library: NafynEndpoint {
 	/// - Parameters:
 	///   - limit: Maximum number of results to return.
 	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
-	case tracks(limit: Int? = nil, offset: Int? = nil)
+	///   - query: Search text: every word has to be found in the track's title, artist or album. Empty is the same as `nil`.
+	///   - sort: The order of the list. Defaults to ``LibrarySort/added`` server-side when omitted.
+	case tracks(limit: Int? = nil, offset: Int? = nil, query: String? = nil, sort: LibrarySort? = nil)
 
 	/// Edit the metadata of a track in the requesting user's library. Only the provided fields are changed.
 	///
@@ -104,6 +108,20 @@ public enum Library: NafynEndpoint {
 	///   - coverArt: A Cover Art Archive URL. Use `.clear` to unset it, `.value(_:)` to set it, or leave `.unset` to not change it.
 	///     Uploaded covers go through ``setCover(id:data:filename:mimeType:)`` instead.
 	case editMetadata(id: String, title: String? = nil, artistName: String? = nil, album: Patchable<String> = .unset, albumType: Patchable<AlbumKind> = .unset, releaseDate: Patchable<Double> = .unset, duration: Double? = nil, label: Patchable<String> = .unset, trackNumber: Patchable<Double> = .unset, coverArt: Patchable<String> = .unset)
+
+	/// Move a track of the requesting user's library to another album. The album's title, type, cover, date and
+	/// the track's disc and position on it come from MusicBrainz; the file moves into the album's folder, and the
+	/// folder it leaves is removed when empty. An album left with no track disappears from the library.
+	///
+	/// Like ``editMetadata(id:title:artistName:album:albumType:releaseDate:duration:label:trackNumber:coverArt:)``,
+	/// an ordinary user may only move a track no other user has (`403` otherwise); `manageMusic` may move any.
+	/// Answers `404` when the track isn't in the library or MusicBrainz knows no such album, `503` when MusicBrainz is unavailable.
+	///
+	/// Returns ``MediaRow``.
+	/// - Parameters:
+	///   - id: Nafyn media ID.
+	///   - albumId: MusicBrainz release-group ID of the album to move the track to (a search result's ``MediaInfo/id``).
+	case changeAlbum(id: String, albumId: String)
 
 	/// Get the user-uploaded cover image of a library track (`image/webp`).
 	///
@@ -198,6 +216,8 @@ public enum Library: NafynEndpoint {
 				return "/api/v1/library/tracks"
 			case .editMetadata(let id, _, _, _, _, _, _, _, _, _):
 				return "/api/v1/library/\(id)"
+			case .changeAlbum(let id, _):
+				return "/api/v1/library/\(id)/album"
 			case .cover(let id, _), .setCover(let id, _, _, _), .deleteCover(let id):
 				return "/api/v1/library/\(id)/cover"
 			case .coverArt(let type, let id, let size, _):
@@ -219,7 +239,7 @@ public enum Library: NafynEndpoint {
 				return [.post]
 			case .editMetadata:
 				return [.patch]
-			case .setLyrics, .setCover:
+			case .setLyrics, .setCover, .changeAlbum:
 				return [.put]
 		}
 	}
@@ -232,13 +252,19 @@ public enum Library: NafynEndpoint {
 			case .cover(_, let token), .coverArt(_, _, _, let token):
 				guard let token else { return [] }
 				return [URLQueryItem(name: "token", value: token)]
-			case .albums(let limit, let offset), .tracks(let limit, let offset):
+			case .albums(let limit, let offset, let query, let sort), .tracks(let limit, let offset, let query, let sort):
 				var items: [URLQueryItem] = []
 				if let limit {
 					items.append(URLQueryItem(name: "limit", value: String(limit)))
 				}
 				if let offset {
 					items.append(URLQueryItem(name: "offset", value: String(offset)))
+				}
+				if let query = query?.trimmingCharacters(in: .whitespacesAndNewlines), !query.isEmpty {
+					items.append(URLQueryItem(name: "q", value: query))
+				}
+				if let sort {
+					items.append(URLQueryItem(name: "sort", value: sort.rawValue))
 				}
 				return items
 			case .all(let page, let limit):
@@ -275,6 +301,8 @@ public enum Library: NafynEndpoint {
 				return AnyEncodable(EditTrackMetadataRequest(title: title, artistName: artistName, album: album, albumType: albumType, releaseDate: releaseDate, duration: duration, label: label, trackNumber: trackNumber, coverArt: coverArt))
 			case .setLyrics(_, let content, let format):
 				return AnyEncodable(SetTrackLyricsRequest(content: content, format: format))
+			case .changeAlbum(_, let albumId):
+				return AnyEncodable(ChangeTrackAlbumRequest(albumId: albumId))
 			default:
 				return nil
 		}
@@ -313,6 +341,23 @@ public enum CoverArtSize: Int, Codable, Sendable, Hashable {
 	case small = 250
 	case medium = 500
 	case large = 1000
+}
+
+/// The order of ``Library/tracks(limit:offset:query:sort:)`` and ``Library/albums(limit:offset:query:sort:)``.
+public enum LibrarySort: String, Codable, Sendable, Hashable, CaseIterable, Identifiable {
+	/// Recently added first. The server's default.
+	case added
+
+	/// Alphabetical by title, A-Z.
+	case title
+
+	/// Alphabetical by artist, A-Z.
+	case artist
+
+	/// Newest release first; items without a release date come last.
+	case released
+
+	public var id: String { self.rawValue }
 }
 
 /// The lyrics format accepted by `Library.setLyrics(id:content:format:)`.
@@ -380,6 +425,10 @@ struct EditTrackMetadataRequest: Encodable, Sendable {
 			case .value(let value): try container.encode(value, forKey: .coverArt)
 		}
 	}
+}
+
+struct ChangeTrackAlbumRequest: Encodable, Sendable {
+	let albumId: String
 }
 
 struct SetTrackLyricsRequest: Encodable, Sendable {

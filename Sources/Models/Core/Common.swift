@@ -244,9 +244,12 @@ public enum SearchFilter: String, Codable, Sendable, Hashable {
 	case all
 }
 
-/// The service that provided a set of synced lyrics.
+/// The service that provided a set of synced lyrics, in the order the server tries them.
 public enum LyricsProvider: String, Codable, Sendable, Hashable {
-	case appleMusic
+	/// Lyrics a user wrote or pasted in themselves; they win over every provider.
+	case manual
+	case betterLyrics
+	case unison
 	case cider
 	case lrclib
 	case cache

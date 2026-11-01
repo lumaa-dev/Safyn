@@ -18,7 +18,7 @@ struct AuthTests {
 	@Test("Registering a new account returns a user and a token")
 	func register() async throws {
 		let server = try await connectedServer()
-		let response: AuthResponse = try await server.send(Auth.register(username: "safyn-new-user", password: "change-me"))
+		let response: AuthResponse = try await server.send(Auth.register(username: "safyn_new_user", password: "change-me"))
 		#expect(!response.token.isEmpty)
 	}
 

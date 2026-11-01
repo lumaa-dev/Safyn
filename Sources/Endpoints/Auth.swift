@@ -12,6 +12,10 @@ public enum Auth: NafynEndpoint {
 
 	/// Create a new user.
 	///
+	/// A new username is 3-20 characters of lowercase letters (a-z), digits (0-9), underscores and dots; the
+	/// server answers `400` for anything else, uppercase and `-` included. Accounts made before that rule keep
+	/// their names and can still log in.
+	///
 	/// Returns ``AuthResponse``.
 	/// - Parameter token: A registration token, required only when open registration is disabled. See ``Settings/registerTokens``.
 	case register(username: String, password: String, token: String? = nil)

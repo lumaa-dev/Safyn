@@ -23,6 +23,31 @@ struct LibraryTests {
 		#expect(secondPage.count <= 2)
 	}
 
+	@Test("Searching and sorting library tracks")
+	func tracksSearchedAndSorted() async throws {
+		let server = try await authenticatedServer()
+		for sort in LibrarySort.allCases {
+			let tracks: PaginatedResponse<MediaRow> = try await server.send(Library.tracks(limit: 5, query: "a", sort: sort))
+			#expect(tracks.items.count <= 5)
+		}
+	}
+
+	@Test("Searching and sorting library albums")
+	func albumsSearchedAndSorted() async throws {
+		let server = try await authenticatedServer()
+		for sort in LibrarySort.allCases {
+			let albums: PaginatedResponse<AlbumRow> = try await server.send(Library.albums(limit: 5, query: "a", sort: sort))
+			#expect(albums.items.count <= 5)
+		}
+	}
+
+	@Test("Moving a track to another album")
+	func changeAlbum() async throws {
+		let server = try await authenticatedServer()
+		let row: MediaRow = try await server.send(Library.changeAlbum(id: "some-media-id", albumId: "some-release-group-id"))
+		#expect(row.albumId == "some-release-group-id")
+	}
+
 	@Test("Listing every album in the authenticated user's library")
 	func albums() async throws {
 		let server = try await authenticatedServer()

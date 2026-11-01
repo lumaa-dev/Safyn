@@ -298,6 +298,41 @@ struct OfflineTests {
 		#expect(query(endpoint) == ["albumId": "abc"])
 	}
 
+	@Test("Library lists send q and sort only when given")
+	func libraryListQueries() {
+		#expect(Library.tracks().queries.isEmpty)
+		#expect(Library.tracks(limit: 2, offset: 4).queries.count == 2)
+		#expect(query(Library.tracks(query: "the strokes", sort: .artist)) == ["q": "the strokes", "sort": "artist"])
+		#expect(query(Library.albums(limit: 10, query: "  new abnormal ", sort: .released)) == ["limit": "10", "q": "new abnormal", "sort": "released"])
+		// blank search text is no search
+		#expect(Library.tracks(query: "   ").queries.isEmpty)
+		#expect(Library.albums(sort: .added).queries.map(\.value) == ["added"])
+		#expect(LibrarySort.allCases.map(\.rawValue) == ["added", "title", "artist", "released"])
+	}
+
+	@Test("Change album endpoint builds its path, method and body")
+	func changeAlbumShape() throws {
+		let endpoint = Library.changeAlbum(id: "m1", albumId: "rg1")
+		#expect(endpoint.path == "/api/v1/library/m1/album")
+		#expect(endpoint.methods == [.put])
+		#expect(endpoint.queries.isEmpty)
+		let body = try #require(endpoint.body)
+		let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: String]
+		#expect(json == ["albumId": "rg1"])
+	}
+
+	@Test("Lyrics decode with every provider the server can name")
+	func lyricsProviders() throws {
+		for provider in ["manual", "betterLyrics", "unison", "cider", "lrclib", "cache"] {
+			let json = #"{"provider":"\#(provider)","paragraphs":[]}"#
+			let lyrics = try decoder().decode(Lyrics.self, from: Data(json.utf8))
+			#expect(lyrics.provider.rawValue == provider)
+		}
+		#expect(throws: DecodingError.self) {
+			_ = try decoder().decode(Lyrics.self, from: Data(#"{"provider":"appleMusic","paragraphs":[]}"#.utf8))
+		}
+	}
+
 	@Test("Pins endpoints use the right paths, methods, queries and body")
 	func pinsShape() throws {
 		#expect(Pins.list.path == "/api/v1/pins")
