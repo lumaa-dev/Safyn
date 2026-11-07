@@ -166,7 +166,7 @@ public struct ReorderedResponse: Codable, Sendable, Hashable {
 	}
 }
 
-/// The instance's concurrent request limit, from `Settings.downloadLimit`/`Settings.setDownloadLimit(maxConcurrent:)`.
+/// The instance's concurrent request limit, from `Settings.downloadLimit` (always 1).
 public struct DownloadLimitResponse: Codable, Sendable, Hashable {
 	/// How many requests may search/download/process at once; the rest queue.
 	public let maxConcurrent: Int

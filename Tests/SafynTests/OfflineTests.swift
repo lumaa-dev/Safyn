@@ -249,16 +249,11 @@ struct OfflineTests {
 		#expect(query(Request.all(succeeded: false)) == ["succeeded": "false"])
 	}
 
-	@Test("Download limit endpoints use the right path, methods and body")
+	@Test("Download limit endpoint uses the right path, method and body")
 	func downloadLimitShape() throws {
 		#expect(Settings.downloadLimit.path == "/api/v1/settings/downloads")
 		#expect(Settings.downloadLimit.methods == [.get])
 		#expect(Settings.downloadLimit.body == nil)
-		#expect(Settings.setDownloadLimit(maxConcurrent: 4).path == "/api/v1/settings/downloads")
-		#expect(Settings.setDownloadLimit(maxConcurrent: 4).methods == [.patch])
-		let body = try #require(Settings.setDownloadLimit(maxConcurrent: 4).body)
-		let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: Int]
-		#expect(json == ["maxConcurrent": 4])
 	}
 
 	@Test("Download limit response decodes")

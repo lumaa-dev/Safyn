@@ -30,16 +30,10 @@ public enum Settings: NafynEndpoint {
 	/// Returns ``StorageInfo``.
 	case storage
 
-	/// How many requests may search/download/process at once on this instance. Requires `admin`.
+	/// How many requests may search/download/process at once on this instance. Always `1`, the server does not let it change. Requires `admin`.
 	///
 	/// Returns ``DownloadLimitResponse``.
 	case downloadLimit
-
-	/// Set how many requests may search/download/process at once; the rest queue. Requires `admin`.
-	///
-	/// Returns ``DownloadLimitResponse``.
-	/// - Parameter maxConcurrent: Between `1` and `100`.
-	case setDownloadLimit(maxConcurrent: Int)
 
 	/// List the instance's global webhooks. Requires `manageWebhooks`. URLs are never returned, only their host.
 	///
@@ -92,7 +86,7 @@ public enum Settings: NafynEndpoint {
 				return "/api/v1/settings/register"
 			case .storage:
 				return "/api/v1/settings/storage"
-			case .downloadLimit, .setDownloadLimit:
+			case .downloadLimit:
 				return "/api/v1/settings/downloads"
 			case .webhooks, .createWebhook:
 				return "/api/v1/webhooks"
@@ -111,7 +105,7 @@ public enum Settings: NafynEndpoint {
 				return [.post]
 			case .deleteWebhook:
 				return [.delete]
-			case .setRegistrationOpen, .setDownloadLimit, .updateWebhook:
+			case .setRegistrationOpen, .updateWebhook:
 				return [.patch]
 		}
 	}
@@ -120,8 +114,6 @@ public enum Settings: NafynEndpoint {
 		switch self {
 			case .setRegistrationOpen(let open):
 				return AnyEncodable(SetRegistrationOpenRequest(open: open))
-			case .setDownloadLimit(let maxConcurrent):
-				return AnyEncodable(SetDownloadLimitRequest(maxConcurrent: maxConcurrent))
 			case .createWebhook(let name, let url, let format, let events, let enabled),
 				.updateWebhook(_, let name, let url, let format, let events, let enabled):
 				return AnyEncodable(WebhookInput(name: name, url: url, format: format, events: events, enabled: enabled))
@@ -133,8 +125,4 @@ public enum Settings: NafynEndpoint {
 
 struct SetRegistrationOpenRequest: Encodable, Sendable {
 	let open: Bool
-}
-
-struct SetDownloadLimitRequest: Encodable, Sendable {
-	let maxConcurrent: Int
 }
