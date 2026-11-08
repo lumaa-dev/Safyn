@@ -14,6 +14,15 @@ struct SearchTests {
 		#expect(!(results.albums.isEmpty && results.tracks.isEmpty && results.artists.isEmpty))
 	}
 
+	@Test("The ranked list holds every kind, most likely first")
+	func rankedList() async throws {
+		let server = try await authenticatedServer()
+		let results: SearchResult = try await server.send(Search.search(q: "Daft Punk"))
+		#expect(results.results.count >= results.artists.count)
+		let relevances = results.results.map(\.relevance)
+		#expect(relevances.count == results.results.count)
+	}
+
 	@Test("Searching with a filter restricts the result category")
 	func searchFiltered() async throws {
 		let server = try await authenticatedServer()

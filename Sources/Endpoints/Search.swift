@@ -5,9 +5,10 @@ import Foundation
 /// API endpoints under the `/api/v1/search` and `/api/v1/metadata` paths.
 public enum Search: NafynEndpoint {
 
-	/// Search MusicBrainz for albums, tracks, and/or artists. Albums and tracks are normalized, filtered
-	/// (Official digital releases only) and ranked; results with a front cover come first, and at most one
-	/// result has ``MediaInfo/bestResult`` set.
+	/// Search MusicBrainz for albums, tracks, and/or artists. ``SearchResult/results`` is ONE list of all three
+	/// kinds, the most likely answer first and the least likely last. Albums and tracks are normalized, filtered
+	/// (Official digital releases only; no Deluxe/Remaster/Live/Remix edition or version unless the query says so,
+	/// but a track is still found on a Deluxe album) and ranked; at most one result has ``MediaInfo/bestResult`` set.
 	///
 	/// Returns ``SearchResult``.
 	/// - Parameters:

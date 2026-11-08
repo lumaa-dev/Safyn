@@ -14,6 +14,16 @@ struct ArtistTests {
 		#expect(!artist.name.isEmpty)
 	}
 
+	@Test("An artist's discography is laid out by kind, newest first")
+	func categories() async throws {
+		let server = try await authenticatedServer()
+		let artist: ArtistDetail = try await server.send(Artist.get(aid: "6fe07aa5-aeed-4ef0-a30f-1d1e2a9d7ee5"))
+		for category in artist.categories {
+			let dates = category.releases.compactMap { $0.media.releaseDate }
+			#expect(dates == dates.sorted(by: >))
+		}
+	}
+
 	@Test("Fetching an artist picture")
 	func image() async throws {
 		let server = try await authenticatedServer()

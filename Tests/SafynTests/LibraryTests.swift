@@ -122,6 +122,13 @@ struct LibraryTests {
 		#expect(response.options.count >= 0)
 	}
 
+	@Test("Listing cover options for one track lists only art that exists")
+	func coverOptionsForRecording() async throws {
+		let server = try await authenticatedServer()
+		let response: CoverOptionsResponse = try await server.send(Library.coverOptionsForRecording(recordingId: "b7d1ba3e-ff23-4eae-acf3-5e0e0a1ea3b8"))
+		#expect(response.options.allSatisfy { $0.kind == .release && !$0.url.isEmpty })
+	}
+
 	@Test("Removing a track from the authenticated user's own library")
 	func remove() async throws {
 		let server = try await authenticatedServer()

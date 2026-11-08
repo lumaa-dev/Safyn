@@ -62,6 +62,97 @@ struct OfflineTests {
 		#expect(info.match == nil)
 	}
 
+	@Test("Search results decode the ranked list of tracks, albums and artists")
+	func searchListDecoding() throws {
+		let json = """
+		{"results":[
+			{"kind":"album","relevance":1,"media":{"id":"a1","title":"Pinkerton","artist":"Weezer","album":null,"type":"album","coverArt":null,"releaseDate":null,"inLibrary":false,"duration":0,"label":null},"artist":null},
+			{"kind":"artist","relevance":0.8,"media":null,"artist":{"name":"Weezer","musicbrainzId":"w1","description":null,"image":null}},
+			{"kind":"track","relevance":0.7,"media":{"id":"t1","title":"Buddy Holly","artist":"Weezer","album":null,"type":"track","coverArt":null,"releaseDate":null,"inLibrary":false,"duration":160,"label":null},"artist":null},
+			{"kind":"podcast","relevance":0.1,"media":null,"artist":null}
+		],"albums":[],"tracks":[],"artists":[]}
+		"""
+		let result = try decoder().decode(SearchResult.self, from: Data(json.utf8))
+		#expect(result.results.map(\.kind) == [.album, .artist, .track, .unknown])
+		#expect(result.results[0].media?.title == "Pinkerton")
+		#expect(result.results[1].artist?.name == "Weezer")
+		#expect(Set(result.results.map(\.id)).count == 4)
+	}
+
+	@Test("A search response without the list (an older server) still decodes")
+	func searchWithoutList() throws {
+		let result = try decoder().decode(SearchResult.self, from: Data(#"{"albums":[],"tracks":[],"artists":[]}"#.utf8))
+		#expect(result.results.isEmpty)
+	}
+
+	// MARK: - Artist
+
+	@Test("An artist's categories decode, editions included")
+	func artistCategories() throws {
+		let json = """
+		{"id":"w1","name":"Weezer","image":null,"bio":null,"listeners":null,"albums":[],"categories":[
+			{"id":"album","releases":[
+				{"id":"g1","title":"Pinkerton","artist":"Weezer","album":null,"type":"album","coverArt":null,"releaseDate":null,"inLibrary":false,"duration":0,"label":null,"releaseId":null,"edition":null},
+				{"id":"g1","title":"Pinkerton (Deluxe Edition)","artist":"Weezer","album":null,"type":"album","coverArt":null,"releaseDate":null,"inLibrary":false,"duration":0,"label":null,"releaseId":"r9","edition":"deluxe"}
+			]},
+			{"id":"hologram","releases":[]}
+		]}
+		"""
+		let artist = try decoder().decode(ArtistDetail.self, from: Data(json.utf8))
+		#expect(artist.categories.map(\.id) == [.album, .other])
+		let releases = artist.categories[0].releases
+		#expect(releases.map(\.releaseId) == [nil, "r9"])
+		#expect(releases.map(\.edition) == [nil, .deluxe])
+		#expect(releases[1].media.id == "g1")
+		#expect(releases[1].media.title == "Pinkerton (Deluxe Edition)")
+		#expect(Set(releases.map(\.id)).count == 2)
+	}
+
+	@Test("An artist without categories (an older server) still decodes")
+	func artistWithoutCategories() throws {
+		let artist = try decoder().decode(ArtistDetail.self, from: Data(#"{"id":"w1","name":"Weezer","image":null,"bio":null,"listeners":null,"albums":[]}"#.utf8))
+		#expect(artist.categories.isEmpty)
+	}
+
+	// MARK: - Album
+
+	@Test("Album sends release only when given")
+	func albumReleaseQuery() {
+		#expect(query(Album.get(aid: "g1")).isEmpty)
+		#expect(Album.get(aid: "g1", release: "r1").path == "/api/v1/album/g1")
+		#expect(query(Album.get(aid: "g1", release: "r1")) == ["release": "r1"])
+	}
+
+	@Test("An album decodes its releases and whether it is the standard one")
+	func albumReleases() throws {
+		let json = """
+		{"id":"g1","releaseId":"r1","isDefaultRelease":false,"title":"Pinkerton","artist":"Weezer","type":"album","coverArt":null,
+		 "releaseDate":null,"releaseDatePrecision":null,"released":true,"subscribed":false,"requested":false,"inLibrary":false,
+		 "description":null,"label":null,"discs":[],"tracks":[],"imageColors":[],"textColor":"#FFFFFF",
+		 "releases":[
+		   {"id":"r0","title":"Pinkerton","disambiguation":null,"date":"1996-09-24","country":"US","format":"CD","trackCount":10,"coverArt":"https://c/r0","selected":false},
+		   {"id":"r1","title":"Pinkerton (Deluxe Edition)","disambiguation":"deluxe edition","date":"2010-11-02","country":null,"format":"Digital Media","trackCount":29,"coverArt":null,"selected":true}
+		 ]}
+		"""
+		let album = try decoder().decode(AlbumDetail.self, from: Data(json.utf8))
+		#expect(album.isDefaultRelease == false)
+		#expect(album.releases.map(\.selected) == [false, true])
+		#expect(album.releases[0].summary == "1996 · US")
+		#expect(album.releases[1].summary == "deluxe edition")
+	}
+
+	@Test("An album without releases (an older server) is the standard one")
+	func albumWithoutReleases() throws {
+		let json = """
+		{"id":"g1","releaseId":"r1","title":"X","artist":"Y","type":null,"coverArt":null,"releaseDate":null,"releaseDatePrecision":null,
+		 "released":true,"subscribed":false,"requested":false,"inLibrary":false,"description":null,"label":null,"discs":[],"tracks":[],
+		 "imageColors":[],"textColor":"#FFFFFF"}
+		"""
+		let album = try decoder().decode(AlbumDetail.self, from: Data(json.utf8))
+		#expect(album.isDefaultRelease)
+		#expect(album.releases.isEmpty)
+	}
+
 	// MARK: - Track
 
 	@Test("ISRC lookup sends no queries without a fallback")
@@ -291,6 +382,14 @@ struct OfflineTests {
 		#expect(endpoint.path == "/api/v1/library/cover-options")
 		#expect(endpoint.methods == [.get])
 		#expect(query(endpoint) == ["albumId": "abc"])
+	}
+
+	@Test("Cover options for ONE track send recordingId")
+	func coverOptionsForRecordingShape() {
+		let endpoint = Library.coverOptionsForRecording(recordingId: "rec")
+		#expect(endpoint.path == "/api/v1/library/cover-options")
+		#expect(endpoint.methods == [.get])
+		#expect(query(endpoint) == ["recordingId": "rec"])
 	}
 
 	@Test("Library lists send q and sort only when given")
