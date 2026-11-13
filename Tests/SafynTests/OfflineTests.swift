@@ -14,6 +14,12 @@ struct OfflineTests {
 		return decoder
 	}
 
+	/// The endpoint's JSON body as a dictionary (empty when it has none).
+	private func bodyJSON(_ endpoint: some NafynEndpoint) throws -> [String: Any] {
+		guard let body = endpoint.body else { return [:] }
+		return try JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: Any] ?? [:]
+	}
+
 	private func query(_ endpoint: some NafynEndpoint) -> [String: String] {
 		Dictionary(uniqueKeysWithValues: endpoint.queries.map { ($0.name, $0.value ?? "") })
 	}
@@ -476,6 +482,130 @@ struct OfflineTests {
 		 "playlists":[{"id":"p","title":"Mix","description":null,"trackCount":3,"updatedAt":1700000000000}]}
 		"""#.utf8))
 		#expect(profile.trackCount == 42 && profile.discogs == nil && profile.playlists.first?.trackCount == 3)
+	}
+
+	// MARK: - Request cancellation
+
+	@Test("Request.cancel posts to the request's cancel path")
+	func requestCancelShape() {
+		let cancel = Request.cancel(id: "q1")
+		#expect(cancel.path == "/api/v1/request/q1/cancel")
+		#expect(cancel.methods == [.post])
+		#expect(cancel.body == nil)
+	}
+
+	@Test("Cancelled status and cancel outcome decode")
+	func cancelDecoding() throws {
+		let response = try decoder().decode(CancelRequestResponse.self, from: Data(#"{"status":"cancelling"}"#.utf8))
+		#expect(response.status == .cancelling)
+		#expect(try decoder().decode(RequestStatus.self, from: Data(#""cancelled""#.utf8)) == .cancelled)
+	}
+
+	// MARK: - Track previews
+
+	@Test("Track.preview carries the token as a query and the range as a header")
+	func trackPreviewShape() {
+		let preview = Track.preview(tid: "r1", token: "abc", range: "bytes=0-99")
+		#expect(preview.path == "/api/v1/track/r1/preview")
+		#expect(preview.methods == [.get])
+		#expect(query(preview) == ["token": "abc"])
+		#expect(preview.headers == ["Range": "bytes=0-99"])
+		#expect(Track.preview(tid: "r1").queries.isEmpty)
+		#expect(Track.preview(tid: "r1").headers.isEmpty)
+	}
+
+	// MARK: - Album imports / Discogs
+
+	@Test("Import body carries albums, and leaves out an empty track list")
+	func importAlbumsBody() throws {
+		let create = Import.create(albums: [ImportAlbum(title: "Nevermind", artist: "Nirvana", barcode: "0720642442524")], source: "discogs")
+		let body = try #require(create.body)
+		let json = try #require(try JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: Any])
+		#expect(json["tracks"] == nil)
+		let album = try #require((json["albums"] as? [[String: Any]])?.first)
+		#expect(album["title"] as? String == "Nevermind")
+		#expect(album["barcode"] as? String == "0720642442524")
+	}
+
+	@Test("Import.discogs posts the username, or nothing for the profile's")
+	func importDiscogsShape() throws {
+		let discogs = Import.discogs(username: "someone")
+		#expect(discogs.path == "/api/v1/import/discogs")
+		#expect(discogs.methods == [.post])
+		#expect(try bodyJSON(discogs)["username"] as? String == "someone")
+		#expect(try bodyJSON(Import.discogs())["username"] == nil)
+	}
+
+	@Test("An album import item decodes its kind, barcode and barcode match; an old item has no kind")
+	func importAlbumItemDecoding() throws {
+		let album = """
+		{"position":0,"kind":"album","barcode":"0720642442524","isrc":null,"title":"Nevermind","artist":"Nirvana","album":"Nevermind","duration":null,"status":"requested","musicbrainzId":"rg1","requestId":"q1","via":"barcode","message":null}
+		"""
+		let item = try decoder().decode(ImportItem.self, from: Data(album.utf8))
+		#expect(item.isAlbum)
+		#expect(item.via == .barcode)
+		#expect(item.barcode == "0720642442524")
+		let old = """
+		{"position":0,"isrc":null,"title":"x","artist":"y","album":null,"duration":null,"status":"pending","musicbrainzId":null,"requestId":null,"via":null,"message":null}
+		"""
+		#expect(try decoder().decode(ImportItem.self, from: Data(old.utf8)).kind == nil)
+	}
+
+	// MARK: - Last.fm
+
+	@Test("Last.fm endpoints: paths, methods, bodies")
+	func lastfmShape() throws {
+		#expect(User.lastfm.path == "/api/v1/user/lastfm")
+		#expect(User.lastfm.methods == [.get])
+		#expect(User.updateLastfm(scrobbling: false).methods == [.patch])
+		#expect(User.disconnectLastfm.methods == [.delete])
+		#expect(User.connectLastfm().path == "/api/v1/user/lastfm/connect")
+		#expect(User.connectLastfm().methods == [.post])
+		#expect(User.lastfmNowPlaying(mediaId: "m1").path == "/api/v1/user/lastfm/now-playing")
+		#expect(try bodyJSON(User.connectLastfm())["client"] as? String == "app")
+		#expect(try bodyJSON(User.updateLastfm(scrobbling: false))["scrobbling"] as? Bool == false)
+		#expect(try bodyJSON(User.lastfmNowPlaying(mediaId: "m1"))["mediaId"] as? String == "m1")
+	}
+
+	@Test("Last.fm connection, connect link, and scrobbling flags decode")
+	func lastfmDecoding() throws {
+		let connection = try decoder().decode(LastfmConnection.self, from: Data(#"{"available":true,"username":"rj","scrobbling":true}"#.utf8))
+		#expect(connection.isConnected)
+		let none = try decoder().decode(LastfmConnection.self, from: Data(#"{"available":false,"username":null,"scrobbling":false}"#.utf8))
+		#expect(!none.isConnected)
+		let link = try decoder().decode(LastfmConnectResponse.self, from: Data(#"{"url":"https://www.last.fm/api/auth/?api_key=k"}"#.utf8))
+		#expect(link.url.host() == "www.last.fm")
+		let ingest = try decoder().decode(IngestPlayEventsResponse.self, from: Data(#"{"accepted":0,"rejected":2,"historyEnabled":false,"scrobbling":true}"#.utf8))
+		#expect(ingest.wantsEvents)
+		let oldIngest = try decoder().decode(IngestPlayEventsResponse.self, from: Data(#"{"accepted":0,"rejected":2,"historyEnabled":false}"#.utf8))
+		#expect(!oldIngest.wantsEvents)
+		let settings = try decoder().decode(InsightsSettings.self, from: Data(#"{"historyEnabled":false,"enabledAt":null,"disabledAt":null,"tzOffsetMinutes":60,"scrobbling":true}"#.utf8))
+		#expect(settings.scrobbling == true)
+	}
+
+	// MARK: - Uploaded covers
+
+	@Test("Uploaded cover flags decode from MySQL numbers and booleans, and are absent on older payloads")
+	func uploadedCoverDecoding() throws {
+		let media = """
+		{"id":"m1","musicbrainzId":"r1","title":"T","artistName":"A","artistMbid":null,"album":null,"albumId":"a1","albumType":null,
+		 "coverArt":null,"releaseDate":null,"duration":200,"label":null,"fingerprint":null,"amId":null,"fileSize":null,"addedAt":1,"hasCustomCover":1}
+		"""
+		#expect(try decoder().decode(MediaRow.self, from: Data(media.utf8)).hasUploadedCover)
+		let bool = media.replacingOccurrences(of: #""hasCustomCover":1"#, with: #""hasCustomCover":false"#)
+		#expect(!(try decoder().decode(MediaRow.self, from: Data(bool.utf8)).hasUploadedCover))
+		let old = media.replacingOccurrences(of: #","hasCustomCover":1"#, with: "")
+		#expect(!(try decoder().decode(MediaRow.self, from: Data(old.utf8)).hasUploadedCover))
+
+		let album = """
+		{"id":"a1","mbId":"rg1","title":"A","artistName":"B","artistMbid":null,"coverArt":null,"releaseDate":null,"duration":1,"trackCount":1,"addedAt":1,"coverMediaId":"m1"}
+		"""
+		#expect(try decoder().decode(AlbumRow.self, from: Data(album.utf8)).coverMediaId == "m1")
+
+		let recent = """
+		{"type":"track","refId":"m1","playedAt":1,"title":"T","subtitle":null,"coverArt":null,"coverMediaId":"m1","playlistImage":null,"href":"/t/r1"}
+		"""
+		#expect(try decoder().decode(RecentlyPlayedEntry.self, from: Data(recent.utf8)).coverMediaId == "m1")
 	}
 
 	// MARK: - Sockets

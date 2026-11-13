@@ -50,4 +50,11 @@ struct RequestTests {
 		let requests: [NafynRequest] = try await server.send(Request.all(succeeded: false, failed: false))
 		#expect(!requests.contains { $0.status == .completed || $0.status == .failed })
 	}
+
+	@Test("Cancelling a request")
+	func cancel() async throws {
+		let server = try await authenticatedServer()
+		let response: CancelRequestResponse = try await server.send(Request.cancel(id: "some-request-id"))
+		#expect(response.status == .cancelled || response.status == .cancelling)
+	}
 }

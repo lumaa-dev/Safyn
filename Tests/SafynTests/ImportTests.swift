@@ -28,4 +28,18 @@ struct ImportTests {
 		let page: PaginatedResponse<PlaylistImport> = try await server.send(Import.all(page: 1, limit: 5))
 		#expect(page.page == 1)
 	}
+
+	@Test("Importing albums")
+	func createAlbums() async throws {
+		let server = try await authenticatedServer()
+		let job: PlaylistImport = try await server.send(Import.create(albums: [ImportAlbum(title: "Discovery", artist: "Daft Punk")], source: "discogs"))
+		#expect(job.total == 1)
+	}
+
+	@Test("Importing a Discogs collection")
+	func discogs() async throws {
+		let server = try await authenticatedServer()
+		let job: PlaylistImport = try await server.send(Import.discogs(username: "someone"))
+		#expect(job.source == "discogs")
+	}
 }

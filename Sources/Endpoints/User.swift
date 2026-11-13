@@ -241,6 +241,35 @@ public enum User: NafynEndpoint {
 	/// - Parameter password: The account's current password, or one of its API tokens.
 	case deleteAccount(password: String)
 
+	/// The user's Last.fm connection (scrobbling).
+	///
+	/// Returns ``LastfmConnection``.
+	case lastfm
+
+	/// Start connecting a Last.fm account: the last.fm page to open (in an `ASWebAuthenticationSession` with
+	/// `client: .app`, whose callback is `nafyn://lastfm?status=connected|error`). The link is valid for 10 minutes.
+	/// The server answers 503 when Last.fm isn't configured on the instance.
+	///
+	/// Returns ``LastfmConnectResponse``.
+	case connectLastfm(client: LastfmClient = .app)
+
+	/// Pause or resume scrobbling to the connected Last.fm account (404 when none is connected).
+	///
+	/// Returns ``LastfmConnection``.
+	case updateLastfm(scrobbling: Bool)
+
+	/// Disconnect the Last.fm account: Nafyn forgets its session key.
+	///
+	/// Returns ``RemovedResponse``.
+	case disconnectLastfm
+
+	/// Tell Last.fm what the user just started playing, when scrobbling is on (fire-and-forget on the server). The
+	/// scrobble itself comes from the play event (`Insights.ingestEvents`).
+	///
+	/// Returns nothing meaningful — send this with ``NafynServer/sendRaw(_:)``.
+	/// - Parameter mediaId: The Nafyn media ID of the track.
+	case lastfmNowPlaying(mediaId: String)
+
 	public var path: String {
 		switch self {
 			case .avatar(let id, _):
@@ -289,18 +318,24 @@ public enum User: NafynEndpoint {
 				return "/api/v1/user/webhooks/\(id)/test"
 			case .deleteAccount:
 				return "/api/v1/user/me"
+			case .lastfm, .updateLastfm, .disconnectLastfm:
+				return "/api/v1/user/lastfm"
+			case .connectLastfm:
+				return "/api/v1/user/lastfm/connect"
+			case .lastfmNowPlaying:
+				return "/api/v1/user/lastfm/now-playing"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .avatar, .me, .apiTokens, .appearanceSettings, .sessions, .unitySettings, .passkeys, .exportAccountData, .playbackSettings, .devices, .webhooks:
+			case .avatar, .me, .apiTokens, .appearanceSettings, .sessions, .unitySettings, .passkeys, .exportAccountData, .playbackSettings, .devices, .webhooks, .lastfm:
 				return [.get]
-			case .deleteAvatar, .deleteApiToken, .deleteSession, .deletePasskey, .deleteDevice, .deleteWebhook, .deleteAccount:
+			case .deleteAvatar, .deleteApiToken, .deleteSession, .deletePasskey, .deleteDevice, .deleteWebhook, .deleteAccount, .disconnectLastfm:
 				return [.delete]
-			case .setAvatar, .createApiToken, .passkeyRegisterOptions, .registerPasskey, .registerDevice, .registerActivityToken, .createWebhook, .testWebhook:
+			case .setAvatar, .createApiToken, .passkeyRegisterOptions, .registerPasskey, .registerDevice, .registerActivityToken, .createWebhook, .testWebhook, .connectLastfm, .lastfmNowPlaying:
 				return [.post]
-			case .updateProfile, .updateAppearanceSettings, .updateUnitySettings, .updatePlaybackSettings, .updateWebhook:
+			case .updateProfile, .updateAppearanceSettings, .updateUnitySettings, .updatePlaybackSettings, .updateWebhook, .updateLastfm:
 				return [.patch]
 		}
 	}
@@ -338,6 +373,12 @@ public enum User: NafynEndpoint {
 				return AnyEncodable(WebhookInput(name: name, url: url, format: format, events: events, enabled: enabled))
 			case .deleteAccount(let password):
 				return AnyEncodable(DeleteAccountRequest(password: password))
+			case .connectLastfm(let client):
+				return AnyEncodable(ConnectLastfmRequest(client: client))
+			case .updateLastfm(let scrobbling):
+				return AnyEncodable(UpdateLastfmRequest(scrobbling: scrobbling))
+			case .lastfmNowPlaying(let mediaId):
+				return AnyEncodable(LastfmNowPlayingRequest(mediaId: mediaId))
 			default:
 				return nil
 		}
@@ -355,6 +396,18 @@ public enum User: NafynEndpoint {
 
 struct DeleteAccountRequest: Encodable, Sendable {
 	let password: String
+}
+
+struct ConnectLastfmRequest: Encodable, Sendable {
+	let client: LastfmClient
+}
+
+struct UpdateLastfmRequest: Encodable, Sendable {
+	let scrobbling: Bool
+}
+
+struct LastfmNowPlayingRequest: Encodable, Sendable {
+	let mediaId: String
 }
 
 struct RegisterActivityTokenRequest: Encodable, Sendable {

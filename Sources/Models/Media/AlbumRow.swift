@@ -34,7 +34,11 @@ public struct AlbumRow: Codable, Sendable, Hashable {
 	/// When the earliest owned track from this album was added, as a Unix timestamp in milliseconds.
 	public let addedAt: Int64
 
-	public init(id: String, mbId: String, title: String, artistName: String, artistMbid: String?, coverArt: String?, releaseDate: Int64?, duration: Double, trackCount: Int, addedAt: Int64) {
+	/// The media ID of one of the album's tracks carrying an uploaded cover, if any: `Library.cover(id:token:)` with it
+	/// wins over ``coverArt``.
+	public let coverMediaId: String?
+
+	public init(id: String, mbId: String, title: String, artistName: String, artistMbid: String?, coverArt: String?, releaseDate: Int64?, duration: Double, trackCount: Int, addedAt: Int64, coverMediaId: String? = nil) {
 		self.id = id
 		self.mbId = mbId
 		self.title = title
@@ -45,6 +49,7 @@ public struct AlbumRow: Codable, Sendable, Hashable {
 		self.duration = duration
 		self.trackCount = trackCount
 		self.addedAt = addedAt
+		self.coverMediaId = coverMediaId
 	}
 
 	/// `releaseDate` converted to a `Date`, if known.

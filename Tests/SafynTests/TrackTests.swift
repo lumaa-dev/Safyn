@@ -43,4 +43,11 @@ struct TrackTests {
 		#expect(track.info.inLibrary != nil)
 		#expect(track.requested != nil)
 	}
+
+	@Test("Fetching a track's preview")
+	func preview() async throws {
+		let server = try await authenticatedServer()
+		let audio = try await server.sendRaw(Track.preview(tid: "f8ecd693-2c62-4fc0-98f3-e2c8a5f70f6b"))
+		#expect(!audio.isEmpty)
+	}
 }

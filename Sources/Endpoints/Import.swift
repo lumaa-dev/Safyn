@@ -8,15 +8,24 @@ import Foundation
 /// then title + artist) and requests it in the background, pacing itself. Poll ``get(id:)`` for progress.
 public enum Import: NafynEndpoint {
 
-	/// Start importing a playlist. Requires `requestTracks`; at most 1000 tracks, one running import per user
-	/// (a second one is a 409).
+	/// Start importing a playlist (tracks) or a collection (albums, requested whole). Tracks require `requestTracks`,
+	/// albums `requestAlbums`; at most 1000 items in all, one running import per user (a second one is a 409).
 	///
 	/// Returns ``PlaylistImport`` (without ``PlaylistImport/items``).
 	/// - Parameters:
 	///   - tracks: The playlist's tracks, in order.
-	///   - source: Where the list comes from, e.g. `"apple-music"` (informational).
+	///   - albums: Albums to request whole (a record collection), after the tracks.
+	///   - source: Where the list comes from, e.g. `"apple-music"`, `"discogs"` (informational).
 	///   - name: The playlist's name (informational).
-	case create(tracks: [ImportTrack], source: String? = nil, name: String? = nil)
+	case create(tracks: [ImportTrack] = [], albums: [ImportAlbum] = [], source: String? = nil, name: String? = nil)
+
+	/// Import the albums of a public Discogs collection: the server reads the collection itself (the `username`
+	/// given, else the Discogs username on the user's profile) and starts an album import. Requires
+	/// `requestAlbums`. Can take several seconds for a large collection.
+	///
+	/// Returns ``PlaylistImport`` (without ``PlaylistImport/items``).
+	/// - Parameter username: Discogs username; `nil` uses the one on the profile.
+	case discogs(username: String? = nil)
 
 	/// One of the requesting user's imports, with every track's outcome in ``PlaylistImport/items``.
 	///
@@ -36,6 +45,8 @@ public enum Import: NafynEndpoint {
 		switch self {
 			case .create, .all:
 				return "/api/v1/import"
+			case .discogs:
+				return "/api/v1/import/discogs"
 			case .get(let id):
 				return "/api/v1/import/\(id)"
 		}
@@ -43,7 +54,7 @@ public enum Import: NafynEndpoint {
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .create:
+			case .create, .discogs:
 				return [.post]
 			case .get, .all:
 				return [.get]
@@ -68,8 +79,10 @@ public enum Import: NafynEndpoint {
 
 	public var body: AnyEncodable? {
 		switch self {
-			case .create(let tracks, let source, let name):
-				return AnyEncodable(CreateImportRequest(source: source, name: name, tracks: tracks))
+			case .create(let tracks, let albums, let source, let name):
+				return AnyEncodable(CreateImportRequest(source: source, name: name, tracks: tracks.isEmpty ? nil : tracks, albums: albums.isEmpty ? nil : albums))
+			case .discogs(let username):
+				return AnyEncodable(DiscogsImportRequest(username: username))
 			default:
 				return nil
 		}
@@ -79,5 +92,10 @@ public enum Import: NafynEndpoint {
 struct CreateImportRequest: Encodable, Sendable {
 	let source: String?
 	let name: String?
-	let tracks: [ImportTrack]
+	let tracks: [ImportTrack]?
+	let albums: [ImportAlbum]?
+}
+
+struct DiscogsImportRequest: Encodable, Sendable {
+	let username: String?
 }

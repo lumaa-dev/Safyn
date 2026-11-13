@@ -28,6 +28,16 @@ public enum Request: NafynEndpoint {
 	/// - Parameter id: Request ID.
 	case delete(id: String)
 
+	/// Cancel a request that hasn't finished: waiting for a manager, queued, or in the download pipeline. Allowed for
+	/// the user who made it and for users with `manageRequests`. Tracks the request already added to the requester's
+	/// library are taken back out.
+	///
+	/// Returns ``CancelRequestResponse``: `.cancelled` at once for a waiting request, `.cancelling` for one in the
+	/// pipeline (it reports ``RequestStatus/cancelled`` over ``NafynDownloadSocket`` shortly after). The server answers
+	/// 409 when the request has already finished.
+	/// - Parameter id: Request ID.
+	case cancel(id: String)
+
 	/// List download requests, paginated. Users with `manageRequests` get every request across every
 	/// user; others get only their own.
 	///
@@ -48,6 +58,8 @@ public enum Request: NafynEndpoint {
 				return "/api/v1/request"
 			case .get(let id), .delete(let id):
 				return "/api/v1/request/\(id)"
+			case .cancel(let id):
+				return "/api/v1/request/\(id)/cancel"
 			case .updateStatus:
 				return "/api/v1/request/status"
 			case .all:
@@ -57,7 +69,7 @@ public enum Request: NafynEndpoint {
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .create, .updateStatus:
+			case .create, .updateStatus, .cancel:
 				return [.post]
 			case .get, .all:
 				return [.get]

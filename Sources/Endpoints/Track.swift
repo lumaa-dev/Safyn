@@ -19,7 +19,7 @@ public enum Track: NafynEndpoint {
 	/// and the best match is returned if relevant enough — or, with `duration`, if its length agrees.
 	/// ``TrackDetail/searchFallback`` is then `true`.
 	///
-	/// To import a whole playlist, prefer ``Import/create(tracks:source:name:)``.
+	/// To import a whole playlist, prefer ``Import/create(tracks:albums:source:name:)``.
 	///
 	/// Returns ``TrackDetail``.
 	/// - Parameters:
@@ -28,6 +28,17 @@ public enum Track: NafynEndpoint {
 	///   - artist: Artist name, fallback when no recording has this ISRC. Needs `title` too.
 	///   - duration: Track length in seconds, as the other service reports it.
 	case getByIsrc(isrc: String?, title: String? = nil, artist: String? = nil, duration: Int? = nil)
+
+	/// The 30-second preview of a track the user doesn't own, from Apple's iTunes catalogue, served by Nafyn with
+	/// HTTP Range support. The server answers 404 when iTunes has no preview of that recording.
+	///
+	/// Returns raw audio `Data` (AAC in MP4) — send this with ``NafynServer/sendRaw(_:)``, or build its URL for a
+	/// player (with `token`, since a player can't set the Authorization header).
+	/// - Parameters:
+	///   - tid: MusicBrainz recording ID.
+	///   - token: Auth token, for clients that can't set the Authorization header (`AVPlayer`, `<audio>`).
+	///   - range: A standard HTTP byte-range value, e.g. `"bytes=0-1023"`.
+	case preview(tid: String, token: String? = nil, range: String? = nil)
 
 	/// What the path carries for a `nil` ISRC: a well-formed code with the never-assigned `ZZ` prefix, which
 	/// the server skips straight to its title + artist search for.
@@ -39,12 +50,14 @@ public enum Track: NafynEndpoint {
 				return "/api/v1/track/\(tid)"
 			case .getByIsrc(let isrc, _, _, _):
 				return "/api/v1/track/isrc/\(isrc ?? Self.placeholderISRC)"
+			case .preview(let tid, _, _):
+				return "/api/v1/track/\(tid)/preview"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .get, .getByIsrc:
+			case .get, .getByIsrc, .preview:
 				return [.get]
 		}
 	}
@@ -65,6 +78,19 @@ public enum Track: NafynEndpoint {
 					items.append(URLQueryItem(name: "duration", value: String(duration)))
 				}
 				return items
+			case .preview(_, let token, _):
+				guard let token else { return [] }
+				return [URLQueryItem(name: "token", value: token)]
+		}
+	}
+
+	public var headers: [String: String] {
+		switch self {
+			case .preview(_, _, let range):
+				guard let range else { return [:] }
+				return ["Range": range]
+			default:
+				return [:]
 		}
 	}
 }

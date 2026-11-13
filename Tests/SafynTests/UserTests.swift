@@ -129,4 +129,37 @@ struct UserSettingsTests {
 		let data = try await server.sendRaw(User.exportAccountData)
 		#expect(!data.isEmpty)
 	}
+
+	@Test("Reading the Last.fm connection")
+	func lastfm() async throws {
+		let server = try await authenticatedServer()
+		let connection: LastfmConnection = try await server.send(User.lastfm)
+		#expect(connection.scrobbling == false || connection.isConnected)
+	}
+
+	@Test("Starting a Last.fm connection")
+	func connectLastfm() async throws {
+		let server = try await authenticatedServer()
+		let link: LastfmConnectResponse = try await server.send(User.connectLastfm(client: .app))
+		#expect(link.url.host() == "www.last.fm")
+	}
+
+	@Test("Pausing Last.fm scrobbling")
+	func updateLastfm() async throws {
+		let server = try await authenticatedServer()
+		let connection: LastfmConnection = try await server.send(User.updateLastfm(scrobbling: false))
+		#expect(connection.scrobbling == false)
+	}
+
+	@Test("Disconnecting Last.fm")
+	func disconnectLastfm() async throws {
+		let server = try await authenticatedServer()
+		let _: RemovedResponse = try await server.send(User.disconnectLastfm)
+	}
+
+	@Test("Reporting Last.fm now playing")
+	func lastfmNowPlaying() async throws {
+		let server = try await authenticatedServer()
+		_ = try await server.sendRaw(User.lastfmNowPlaying(mediaId: "some-media-id"))
+	}
 }

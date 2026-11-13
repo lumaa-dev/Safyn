@@ -156,6 +156,24 @@ public struct RecordedResponse: Codable, Sendable, Hashable {
 	}
 }
 
+/// The result of ``Request/cancel(id:)``.
+public struct CancelRequestResponse: Codable, Sendable, Hashable {
+	/// What the cancel did.
+	public enum Outcome: String, Codable, Sendable, Hashable {
+		/// The request was waiting (or nothing ran it) and is now ``RequestStatus/cancelled``.
+		case cancelled
+		/// The pipeline was told to stop: the request reports ``RequestStatus/cancelled`` shortly.
+		case cancelling
+	}
+
+	/// What the cancel did.
+	public let status: Outcome
+
+	public init(status: Outcome) {
+		self.status = status
+	}
+}
+
 /// The result of `Playlist.reorder(pid:order:)`.
 public struct ReorderedResponse: Codable, Sendable, Hashable {
 	/// Whether the playlist was reordered.
@@ -261,13 +279,21 @@ public struct IngestPlayEventsResponse: Codable, Sendable, Hashable {
 	/// The number of entries dropped as malformed, duplicated within the batch, or referencing a track outside the user's library.
 	public let rejected: Int
 
-	/// `false` means the batch was accepted and discarded; the client should stop sending events.
+	/// `false` means the batch was not stored in the listening history.
 	public let historyEnabled: Bool
 
-	public init(accepted: Int, rejected: Int, historyEnabled: Bool) {
+	/// The plays are scrobbled to Last.fm. A client stops sending events only when this and ``historyEnabled`` are
+	/// both `false`. `nil` from servers older than Last.fm scrobbling.
+	public let scrobbling: Bool?
+
+	/// Whether the client should keep reporting plays: the history or Last.fm still wants them.
+	public var wantsEvents: Bool { self.historyEnabled || self.scrobbling == true }
+
+	public init(accepted: Int, rejected: Int, historyEnabled: Bool, scrobbling: Bool? = nil) {
 		self.accepted = accepted
 		self.rejected = rejected
 		self.historyEnabled = historyEnabled
+		self.scrobbling = scrobbling
 	}
 }
 

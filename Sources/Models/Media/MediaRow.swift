@@ -58,7 +58,14 @@ public struct MediaRow: Codable, Sendable, Hashable {
 	/// When this track was added to the library, as a Unix timestamp in milliseconds.
 	public let addedAt: Int64
 
-	public init(id: String, musicbrainzId: String, title: String, artistName: String, artistMbid: String?, album: String?, albumId: String, albumType: AlbumKind?, coverArt: String?, releaseDate: Int64?, duration: Double, label: String?, fingerprint: String?, amId: String?, fileSize: Int64?, addedAt: Int64, trackNumber: Double? = nil, discNumber: Double? = nil) {
+	/// The track carries a cover uploaded by a user, served by `Library.cover(id:token:)`; it wins over ``coverArt``.
+	/// See ``hasUploadedCover``.
+	public let hasCustomCover: LenientBool?
+
+	/// Whether ``hasCustomCover`` is set: show `Library.cover(id:token:)` rather than ``coverArt``.
+	public var hasUploadedCover: Bool { self.hasCustomCover?.value ?? false }
+
+	public init(id: String, musicbrainzId: String, title: String, artistName: String, artistMbid: String?, album: String?, albumId: String, albumType: AlbumKind?, coverArt: String?, releaseDate: Int64?, duration: Double, label: String?, fingerprint: String?, amId: String?, fileSize: Int64?, addedAt: Int64, trackNumber: Double? = nil, discNumber: Double? = nil, hasCustomCover: Bool = false) {
 		self.id = id
 		self.musicbrainzId = musicbrainzId
 		self.title = title
@@ -77,6 +84,7 @@ public struct MediaRow: Codable, Sendable, Hashable {
 		self.addedAt = addedAt
 		self.trackNumber = trackNumber
 		self.discNumber = discNumber
+		self.hasCustomCover = LenientBool(hasCustomCover)
 	}
 
 	/// `releaseDate` converted to a `Date`, if known.

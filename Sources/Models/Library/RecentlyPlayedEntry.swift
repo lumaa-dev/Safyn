@@ -28,7 +28,11 @@ public struct RecentlyPlayedEntry: Codable, Sendable, Hashable {
 	/// A relative app URL to open this item.
 	public let href: String
 
-	public init(type: RecentEntryKind, refId: String, playedAt: Int64, title: String, subtitle: String?, coverArt: String?, playlistImage: String?, href: String) {
+	/// A track carrying an uploaded cover (the track itself, or one of the album's): `Library.cover(id:token:)` with it
+	/// wins over ``coverArt``. `nil` from servers older than this field.
+	public let coverMediaId: String?
+
+	public init(type: RecentEntryKind, refId: String, playedAt: Int64, title: String, subtitle: String?, coverArt: String?, playlistImage: String?, href: String, coverMediaId: String? = nil) {
 		self.type = type
 		self.refId = refId
 		self.playedAt = playedAt
@@ -37,6 +41,7 @@ public struct RecentlyPlayedEntry: Codable, Sendable, Hashable {
 		self.coverArt = coverArt
 		self.playlistImage = playlistImage
 		self.href = href
+		self.coverMediaId = coverMediaId
 	}
 
 	/// `playedAt` converted to a `Date`.

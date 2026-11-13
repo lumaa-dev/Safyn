@@ -219,6 +219,8 @@ public enum RequestStatus: String, Codable, Sendable, Hashable {
 	case failed
 	/// Refused by a user with `manageRequests`.
 	case denied
+	/// Stopped by the requester or a user with `manageRequests` (``Request/cancel(id:)``), waiting or in the pipeline.
+	case cancelled
 }
 
 /// Whether a ``PlaylistRow`` is visible to anonymous visitors.
@@ -327,4 +329,31 @@ public enum Patchable<T: Encodable & Sendable>: Sendable {
 
 	/// Send this value.
 	case value(T)
+}
+
+/// A flag the API may send as a JSON boolean or as a MySQL `0`/`1` (e.g. ``MediaRow/hasCustomCover``).
+public struct LenientBool: Codable, Sendable, Hashable {
+	public let value: Bool
+
+	public init(_ value: Bool) {
+		self.value = value
+	}
+
+	public init(from decoder: Decoder) throws {
+		let container = try decoder.singleValueContainer()
+		if let bool = try? container.decode(Bool.self) {
+			self.value = bool
+		} else if let number = try? container.decode(Int.self) {
+			self.value = number != 0
+		} else if let text = try? container.decode(String.self) {
+			self.value = text == "1" || text.lowercased() == "true"
+		} else {
+			self.value = false
+		}
+	}
+
+	public func encode(to encoder: Encoder) throws {
+		var container = encoder.singleValueContainer()
+		try container.encode(self.value)
+	}
 }

@@ -26,6 +26,37 @@ public struct ImportTrack: Codable, Sendable, Hashable {
 	}
 }
 
+/// One album of a collection to import (a Discogs collection), requested whole.
+public struct ImportAlbum: Codable, Sendable, Hashable {
+	public let title: String
+
+	/// The artist as the other service displays it.
+	public let artist: String
+
+	/// UPC / EAN, when the other service has it: the surest way to find the album on MusicBrainz.
+	public let barcode: String?
+
+	public init(title: String, artist: String, barcode: String? = nil) {
+		self.title = title
+		self.artist = artist
+		self.barcode = barcode
+	}
+}
+
+/// Whether an ``ImportItem`` is a track or a whole album.
+public enum ImportItemKind: String, Codable, Sendable, Hashable {
+	case track
+	/// ``ImportItem/title`` is the album's; it was matched to a release-group and requested whole.
+	case album
+	/// A value this client doesn't know yet.
+	case unknown
+
+	public init(from decoder: Decoder) throws {
+		let raw = try decoder.singleValueContainer().decode(String.self)
+		self = ImportItemKind(rawValue: raw) ?? .unknown
+	}
+}
+
 /// Whether a ``PlaylistImport`` is still being worked on.
 public enum ImportStatus: String, Codable, Sendable, Hashable {
 	case running
@@ -64,9 +95,11 @@ public enum ImportItemStatus: String, Codable, Sendable, Hashable {
 	}
 }
 
-/// How an ``ImportItem`` was matched to its MusicBrainz recording.
+/// How an ``ImportItem`` was matched to its MusicBrainz recording (or release-group, for an album).
 public enum ImportMatchVia: String, Codable, Sendable, Hashable {
 	case isrc
+	/// An album, by its barcode.
+	case barcode
 	/// By searching its title + artist.
 	case search
 	/// A value this client doesn't know yet.
@@ -116,10 +149,14 @@ public struct ImportCounts: Codable, Sendable, Hashable {
 	}
 }
 
-/// One track of a ``PlaylistImport`` and its outcome.
+/// One track (or album) of a ``PlaylistImport`` and its outcome.
 public struct ImportItem: Codable, Sendable, Hashable, Identifiable {
-	/// 0-based index in the submitted list.
+	/// 0-based index: the submitted tracks first, then the albums.
 	public let position: Int
+	/// Track or album; `nil` from servers older than album imports (always a track there).
+	public let kind: ImportItemKind?
+	/// The album's barcode, as submitted.
+	public let barcode: String?
 	public let isrc: String?
 	public let title: String
 	public let artist: String
@@ -127,7 +164,7 @@ public struct ImportItem: Codable, Sendable, Hashable, Identifiable {
 	/// Length in seconds, as submitted.
 	public let duration: Int?
 	public let status: ImportItemStatus
-	/// The MusicBrainz recording it was matched to.
+	/// The MusicBrainz recording (track) or release-group (album) it was matched to.
 	public let musicbrainzId: String?
 	/// The download request created for it, when ``status`` is ``ImportItemStatus/requested``.
 	public let requestId: String?
@@ -135,16 +172,20 @@ public struct ImportItem: Codable, Sendable, Hashable, Identifiable {
 	public let message: String?
 
 	public var id: Int { self.position }
+
+	/// The item is a whole album (``kind`` is ``ImportItemKind/album``).
+	public var isAlbum: Bool { self.kind == .album }
 }
 
-/// A playlist import started with ``Import/create(tracks:source:name:)``.
+/// A playlist (or collection) import started with ``Import/create(tracks:albums:source:name:)`` or
+/// ``Import/discogs(username:)``.
 public struct PlaylistImport: Codable, Sendable, Hashable, Identifiable {
 	public let id: String
 	public let source: String?
 	public let name: String?
 	public let status: ImportStatus
 	public let total: Int
-	/// Tracks no longer ``ImportItemStatus/pending``.
+	/// Items no longer ``ImportItemStatus/pending``.
 	public let processed: Int
 	public let counts: ImportCounts
 	/// Unix seconds.

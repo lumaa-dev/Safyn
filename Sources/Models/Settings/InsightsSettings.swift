@@ -18,10 +18,15 @@ public struct InsightsSettings: Codable, Sendable, Hashable {
 	/// Minutes to add to UTC to reach the user's local time; decides where their day, week, and year boundaries fall.
 	public let tzOffsetMinutes: Int
 
-	public init(historyEnabled: Bool, enabledAt: Int64?, disabledAt: Int64?, tzOffsetMinutes: Int) {
+	/// Plays are scrobbled to Last.fm, so a client keeps reporting them (`Insights.ingestEvents`) even with the history
+	/// off. Only sent by `Insights.settings()`; `nil` from older servers and from the update.
+	public let scrobbling: Bool?
+
+	public init(historyEnabled: Bool, enabledAt: Int64?, disabledAt: Int64?, tzOffsetMinutes: Int, scrobbling: Bool? = nil) {
 		self.historyEnabled = historyEnabled
 		self.enabledAt = enabledAt
 		self.disabledAt = disabledAt
 		self.tzOffsetMinutes = tzOffsetMinutes
+		self.scrobbling = scrobbling
 	}
 }
