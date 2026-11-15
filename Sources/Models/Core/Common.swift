@@ -252,6 +252,8 @@ public enum LyricsProvider: String, Codable, Sendable, Hashable {
 	case manual
 	case betterLyrics
 	case unison
+	/// Better Lyrics' QQ provider (word-timed).
+	case betterLyricsPortato
 	case cider
 	case lrclib
 	case cache

@@ -423,7 +423,7 @@ struct OfflineTests {
 
 	@Test("Lyrics decode with every provider the server can name")
 	func lyricsProviders() throws {
-		for provider in ["manual", "betterLyrics", "unison", "cider", "lrclib", "cache"] {
+		for provider in ["manual", "betterLyrics", "unison", "betterLyricsPortato", "cider", "lrclib", "cache"] {
 			let json = #"{"provider":"\#(provider)","paragraphs":[]}"#
 			let lyrics = try decoder().decode(Lyrics.self, from: Data(json.utf8))
 			#expect(lyrics.provider.rawValue == provider)
@@ -431,6 +431,23 @@ struct OfflineTests {
 		#expect(throws: DecodingError.self) {
 			_ = try decoder().decode(Lyrics.self, from: Data(#"{"provider":"appleMusic","paragraphs":[]}"#.utf8))
 		}
+	}
+
+	@Test("Lyrics decode Unison's credit, and no credit as nil")
+	func lyricsCredit() throws {
+		let json = #"""
+		{"provider":"unison","paragraphs":[],"credit":{"text":"Lyrics from Unison","url":"https://unison.betterlyrics.org/song/Ugr4KKK_SqY","submitter":{"name":"boidu","url":"https://unison.betterlyrics.org/curator/abc"}}}
+		"""#
+		let lyrics = try decoder().decode(Lyrics.self, from: Data(json.utf8))
+		#expect(lyrics.credit?.text == "Lyrics from Unison")
+		#expect(lyrics.credit?.url.absoluteString == "https://unison.betterlyrics.org/song/Ugr4KKK_SqY")
+		#expect(lyrics.credit?.submitter?.name == "boidu")
+
+		let noSubmitter = #"{"provider":"unison","paragraphs":[],"credit":{"text":"Lyrics from Unison","url":"https://unison.betterlyrics.org","submitter":null}}"#
+		#expect(try decoder().decode(Lyrics.self, from: Data(noSubmitter.utf8)).credit?.submitter == nil)
+
+		let plain = try decoder().decode(Lyrics.self, from: Data(#"{"provider":"lrclib","paragraphs":[]}"#.utf8))
+		#expect(plain.credit == nil)
 	}
 
 	@Test("Pins endpoints use the right paths, methods, queries and body")
