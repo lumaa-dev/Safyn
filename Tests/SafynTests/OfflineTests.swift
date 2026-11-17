@@ -424,30 +424,79 @@ struct OfflineTests {
 	@Test("Lyrics decode with every provider the server can name")
 	func lyricsProviders() throws {
 		for provider in ["manual", "betterLyrics", "unison", "betterLyricsPortato", "cider", "lrclib", "cache"] {
-			let json = #"{"provider":"\#(provider)","paragraphs":[]}"#
+			let json = #"{"provider":"\#(provider)","syncType":"none","lyrics":[],"songwriters":[],"offsetMs":0}"#
 			let lyrics = try decoder().decode(Lyrics.self, from: Data(json.utf8))
 			#expect(lyrics.provider.rawValue == provider)
 		}
 		#expect(throws: DecodingError.self) {
-			_ = try decoder().decode(Lyrics.self, from: Data(#"{"provider":"appleMusic","paragraphs":[]}"#.utf8))
+			_ = try decoder().decode(Lyrics.self, from: Data(#"{"provider":"appleMusic","syncType":"none","lyrics":[],"songwriters":[],"offsetMs":0}"#.utf8))
 		}
 	}
 
 	@Test("Lyrics decode Unison's credit, and no credit as nil")
 	func lyricsCredit() throws {
 		let json = #"""
-		{"provider":"unison","paragraphs":[],"credit":{"text":"Lyrics from Unison","url":"https://unison.betterlyrics.org/song/Ugr4KKK_SqY","submitter":{"name":"boidu","url":"https://unison.betterlyrics.org/curator/abc"}}}
+		{"provider":"unison","syncType":"synced","lyrics":[],"songwriters":[],"offsetMs":0,"credit":{"text":"Lyrics from Unison","url":"https://unison.betterlyrics.org/song/Ugr4KKK_SqY","submitter":{"name":"boidu","url":"https://unison.betterlyrics.org/curator/abc"}}}
 		"""#
 		let lyrics = try decoder().decode(Lyrics.self, from: Data(json.utf8))
 		#expect(lyrics.credit?.text == "Lyrics from Unison")
 		#expect(lyrics.credit?.url.absoluteString == "https://unison.betterlyrics.org/song/Ugr4KKK_SqY")
 		#expect(lyrics.credit?.submitter?.name == "boidu")
 
-		let noSubmitter = #"{"provider":"unison","paragraphs":[],"credit":{"text":"Lyrics from Unison","url":"https://unison.betterlyrics.org","submitter":null}}"#
+		let noSubmitter = #"{"provider":"unison","syncType":"synced","lyrics":[],"songwriters":[],"offsetMs":0,"credit":{"text":"Lyrics from Unison","url":"https://unison.betterlyrics.org","submitter":null}}"#
 		#expect(try decoder().decode(Lyrics.self, from: Data(noSubmitter.utf8)).credit?.submitter == nil)
 
-		let plain = try decoder().decode(Lyrics.self, from: Data(#"{"provider":"lrclib","paragraphs":[]}"#.utf8))
+		let plain = try decoder().decode(Lyrics.self, from: Data(#"{"provider":"lrclib","syncType":"none","lyrics":[],"songwriters":[],"offsetMs":0}"#.utf8))
 		#expect(plain.credit == nil)
+	}
+
+	@Test("Lyrics decode Braccato's Lyric[] shape: parts, background vocals, instrumental lines, offset")
+	func lyricsBraccatoShape() throws {
+		let json = #"""
+		{"provider":"betterLyrics","syncType":"richsync","songwriters":["Max Martin"],"language":"en","offsetMs":-250,
+		 "lyrics":[
+		  {"agent":"v2","startTimeMs":1000,"durationMs":2000,"words":"Hello world(yeah)","key":"0","parts":[
+		    {"startTimeMs":1000,"durationMs":500,"isBackground":false,"words":"Hel","explicit":false},
+		    {"startTimeMs":1500,"durationMs":500,"isBackground":false,"words":"lo"},
+		    {"startTimeMs":2000,"durationMs":0,"words":" ","isBackground":false},
+		    {"startTimeMs":2000,"durationMs":1000,"isBackground":false,"words":"world"},
+		    {"startTimeMs":2500,"durationMs":500,"isBackground":true,"backgroundGroup":0,"words":"(yeah)"}]},
+		  {"startTimeMs":3000,"durationMs":7000,"words":"","parts":[],"isInstrumental":true},
+		  {"startTimeMs":10000,"durationMs":2000,"words":"Again","translation":{"text":"Encore","lang":"fr"}}]}
+		"""#
+		let lyrics = try decoder().decode(Lyrics.self, from: Data(json.utf8))
+		#expect(lyrics.syncType == .richsync)
+		#expect(lyrics.isRichSynced)
+		#expect(lyrics.songwriters == ["Max Martin"])
+		#expect(lyrics.language == "en")
+		#expect(lyrics.offset == -0.25)
+		#expect(lyrics.lyrics.count == 3)
+
+		let first = lyrics.lyrics[0]
+		#expect(first.startTime == 1)
+		#expect(first.endTime == 3)
+		#expect(first.isAltVoice)
+		#expect(first.mainText == "Hello world")
+		#expect(first.backgroundText == "(yeah)")
+		#expect(first.mainParts.count == 4)
+		#expect(first.backgroundParts.first?.startTime == 2.5)
+
+		#expect(lyrics.lyrics[1].instrumental)
+		#expect(!lyrics.lyrics[2].isAltVoice)
+		#expect(lyrics.lyrics[2].mainText == "Again")
+		#expect(lyrics.lyrics[2].translation?.lang == "fr")
+	}
+
+	@Test("Setting a lyric offset uses the right path, method and body, and decodes its answer")
+	func lyricsOffsetShape() throws {
+		let endpoint = Library.setLyricsOffset(id: "m1", offsetMs: -300)
+		#expect(endpoint.path == "/api/v1/library/m1/lyrics/offset")
+		#expect(endpoint.methods == [.put])
+		#expect(endpoint.queries.isEmpty)
+		let body = try #require(endpoint.body)
+		let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: Int]
+		#expect(json == ["offsetMs": -300])
+		#expect(try decoder().decode(LyricsOffset.self, from: Data(#"{"offsetMs":-300}"#.utf8)).offsetMs == -300)
 	}
 
 	@Test("Pins endpoints use the right paths, methods, queries and body")

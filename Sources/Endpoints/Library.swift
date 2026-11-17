@@ -20,7 +20,7 @@ public enum Library: NafynEndpoint {
 	///   - userId: ID of the user whose library entry is being removed.
 	case removeForUser(id: String, userId: String)
 
-	/// Get synced lyrics for a library track, tried across providers (Better Lyrics, Unison, Cider, LRCLIB) in order until one has a match. Word-timed (karaoke) lyrics carry `segments` on their lines. Answers are cached by the server for 20 minutes.
+	/// Get the lyrics of a library track: the user-supplied ones, else the providers (Unison, Better Lyrics, Better Lyrics Portato, Cider, LRCLIB) in order until one has a match. Parsed by Braccato and sent in its `Lyric[]` shape: syllable/word timing is in each line's `parts`. Answers are cached by the server for 20 minutes, with the track's lyric offset.
 	///
 	/// Returns ``Lyrics``.
 	/// - Parameter id: Media ID.
@@ -172,6 +172,15 @@ public enum Library: NafynEndpoint {
 	/// - Parameter id: Nafyn media ID.
 	case deleteLyrics(id: String)
 
+	/// Move a track's synced lyrics earlier or later against its audio. The offset belongs to the track (every listener
+	/// gets it) and is kept with its cached lyrics, so it lasts as long as they do (20 minutes). Unsynced lyrics take none (404).
+	///
+	/// Returns ``LyricsOffset``.
+	/// - Parameters:
+	///   - id: Nafyn media ID.
+	///   - offsetMs: Milliseconds the lyrics are shown later (negative: earlier), within ±30000.
+	case setLyricsOffset(id: String, offsetMs: Int)
+
 	/// Import an audio file into the requesting user's library with user-supplied metadata.
 	///
 	/// Returns ``MediaRow``.
@@ -207,6 +216,8 @@ public enum Library: NafynEndpoint {
 				return "/api/v1/library/\(id)/\(userId)"
 			case .lyrics(let id), .setLyrics(let id, _, _), .deleteLyrics(let id):
 				return "/api/v1/library/\(id)/lyrics"
+			case .setLyricsOffset(let id, _):
+				return "/api/v1/library/\(id)/lyrics/offset"
 			case .stream(let id, _, _):
 				return "/api/v1/library/\(id)/stream"
 			case .album(let id):
@@ -246,7 +257,7 @@ public enum Library: NafynEndpoint {
 				return [.post]
 			case .editMetadata:
 				return [.patch]
-			case .setLyrics, .setCover, .changeAlbum:
+			case .setLyrics, .setLyricsOffset, .setCover, .changeAlbum:
 				return [.put]
 		}
 	}
@@ -310,6 +321,8 @@ public enum Library: NafynEndpoint {
 				return AnyEncodable(EditTrackMetadataRequest(title: title, artistName: artistName, album: album, albumType: albumType, releaseDate: releaseDate, duration: duration, label: label, trackNumber: trackNumber, coverArt: coverArt))
 			case .setLyrics(_, let content, let format):
 				return AnyEncodable(SetTrackLyricsRequest(content: content, format: format))
+			case .setLyricsOffset(_, let offsetMs):
+				return AnyEncodable(SetLyricsOffsetRequest(offsetMs: offsetMs))
 			case .changeAlbum(_, let albumId):
 				return AnyEncodable(ChangeTrackAlbumRequest(albumId: albumId))
 			default:
@@ -443,4 +456,8 @@ struct ChangeTrackAlbumRequest: Encodable, Sendable {
 struct SetTrackLyricsRequest: Encodable, Sendable {
 	let content: String
 	let format: LyricsFormat
+}
+
+struct SetLyricsOffsetRequest: Encodable, Sendable {
+	let offsetMs: Int
 }

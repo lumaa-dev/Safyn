@@ -84,7 +84,14 @@ struct LibraryTests {
 	func lyrics() async throws {
 		let server = try await authenticatedServer()
 		let lyrics: Lyrics = try await server.send(Library.lyrics(id: "some-media-id"))
-		#expect(!lyrics.paragraphs.isEmpty)
+		#expect(!lyrics.lyrics.isEmpty)
+	}
+
+	@Test("Setting a track's lyric offset")
+	func lyricsOffset() async throws {
+		let server = try await authenticatedServer()
+		let offset: LyricsOffset = try await server.send(Library.setLyricsOffset(id: "some-media-id", offsetMs: 200))
+		#expect(offset.offsetMs == 200)
 	}
 
 	@Test("Streaming a library track's audio")
