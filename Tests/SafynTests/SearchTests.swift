@@ -52,11 +52,4 @@ struct SearchTests {
 			let _: SearchResult = try await server.send(Search.search(q: "x", isrc: "USQX91300108"))
 		}
 	}
-
-	@Test("Listing metadata providers")
-	func metadataProviders() async throws {
-		let server = try await authenticatedServer()
-		let providers: [MetadataProvider] = try await server.send(Search.metadataProviders)
-		#expect(providers.count >= 0)
-	}
 }

@@ -53,6 +53,7 @@ ranges, `.local` mDNS hosts); anything else must use `https://`.
 - ``Library``
 - ``Pins``
 - ``Playlist``
+- ``Recommendations``
 - ``Request``
 - ``Search``
 - ``Settings``
@@ -60,6 +61,22 @@ ranges, `.local` mDNS hosts); anything else must use `https://`.
 - ``Track``
 - ``User``
 - ``Users``
+
+### Recommendations
+
+- ``RecommendationHome``
+- ``RecommendationShelf``
+- ``RecommendationCard``
+- ``RecommendationItem``
+- ``RecommendationExplanation``
+- ``RecommendationFeedbackEvent``
+- ``MixList``
+- ``MixSummary``
+- ``MixDetail``
+- ``MixTrack``
+- ``MixSuggestion``
+- ``MixLabel``
+- ``RecommendationSettings``
 
 ### Live download progress
 

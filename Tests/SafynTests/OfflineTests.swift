@@ -691,4 +691,89 @@ struct OfflineTests {
 		let server = NafynServer(instance: instance, authToken: "test-token")
 		_ = try server.unitySocket()
 	}
+
+	// MARK: - Recommendations
+
+	@Test("Recommendations endpoints use the right paths, methods, queries and bodies")
+	func recommendationsShape() throws {
+		let home = Recommendations.home(device: .ios, tzOffsetMinutes: 60)
+		#expect(home.path == "/api/v1/recommendations/home")
+		#expect(home.methods == [.get])
+		#expect(query(home) == ["device": "ios", "tz": "60"])
+
+		let feedback = Recommendations.feedback(decisionId: "d1", slot: 2, event: .play, msPlayed: 45_000)
+		#expect(feedback.path == "/api/v1/recommendations/feedback")
+		#expect(feedback.methods == [.post])
+		let body = try bodyJSON(feedback)
+		#expect(body["decisionId"] as? String == "d1")
+		#expect(body["slot"] as? Int == 2)
+		#expect(body["event"] as? String == "play")
+		#expect(body["msPlayed"] as? Int == 45_000)
+		#expect(try bodyJSON(Recommendations.feedback(decisionId: "d", slot: 0, event: .open, msPlayed: -5))["msPlayed"] as? Int == 0)
+
+		#expect(Recommendations.mixes.path == "/api/v1/recommendations/mixes")
+		#expect(Recommendations.mix(id: "m1").path == "/api/v1/recommendations/mixes/m1")
+		#expect(Recommendations.refreshMixes.path == "/api/v1/recommendations/mixes/refresh")
+		#expect(Recommendations.refreshMixes.methods == [.post])
+		#expect(Recommendations.settings.methods == [.get])
+		let update = Recommendations.updateSettings(enabled: false)
+		#expect(update.path == "/api/v1/recommendations/settings")
+		#expect(update.methods == [.patch])
+		#expect(try bodyJSON(update)["enabled"] as? Bool == false)
+		#expect(Recommendations.models.path == "/api/v1/recommendations/models")
+	}
+
+	@Test("Discover page decodes, unknown kinds included")
+	func recommendationHomeDecoding() throws {
+		let json = """
+		{"pageId":"p","refreshing":false,"refreshedAt":1700000000000,"shelves":[
+		 {"decisionId":"d1","kind":"jump_back_in","row":0,"cards":[
+		  {"slot":0,"actionId":"album:rg#recently_played","item":{"kind":"album","refId":"rg","title":"Discovery","subtitle":"Daft Punk","coverArt":"/api/v1/art/release-group/rg/250","coverMediaId":null,"playlistImage":null,"href":"/l/a/rg"},"explanation":{"kind":"recently_played"}}]},
+		 {"decisionId":"d2","kind":"mixes","row":1,"cards":[
+		  {"slot":0,"actionId":"mix:m#none","item":{"kind":"mix","refId":"m","title":"1990s Mix","subtitle":null,"coverArt":null,"coverMediaId":null,"playlistImage":null,"covers":["a","b"],"label":{"kind":"decade","value":"1990s","qualifier":{"kind":"mood","value":"mellow"}},"href":"/mix/m"},"explanation":{"kind":"none"}}]},
+		 {"decisionId":"d3","kind":"future_shelf","row":2,"cards":[
+		  {"slot":0,"actionId":"x","item":{"kind":"podcast","refId":"x","title":"X","subtitle":null,"coverArt":null,"coverMediaId":null,"playlistImage":null,"href":"/x"},"explanation":{"kind":"because_of_weather","subject":"rain"}}]}
+		]}
+		"""
+		let home = try decoder().decode(RecommendationHome.self, from: Data(json.utf8))
+		#expect(home.shelves.count == 3)
+		#expect(home.shelves[0].kind == .jumpBackIn)
+		#expect(home.shelves[0].cards[0].explanation.kind == .recentlyPlayed)
+		#expect(home.shelves[1].cards[0].item.label?.kind == .decade)
+		#expect(home.shelves[1].cards[0].item.label?.qualifier?.value == "mellow")
+		#expect(home.shelves[2].kind == .unknown)
+		#expect(home.shelves[2].cards[0].item.kind == .unknown)
+		#expect(home.shelves[2].cards[0].explanation.kind == .unknown)
+	}
+
+	@Test("Mix detail decodes familiar tracks (with inLibrary) and suggestions")
+	func mixDetailDecoding() throws {
+		let json = """
+		{"id":"m","position":0,"label":{"kind":"genre","value":"shoegaze"},"title":"Shoegaze Mix","topArtists":["Slowdive"],"trackCount":2,"familiarCount":1,"covers":[],"refreshedAt":1700000000000,"tracks":[
+		 {"position":0,"familiar":true,"confidence":0.8,"reason":{"kind":"familiar","plays":12,"lastPlayedAt":1699999999999},
+		  "media":{"id":"med","musicbrainzId":"rec","title":"Alison","artistName":"Slowdive","artistMbid":null,"album":"Souvlaki","albumId":"rg","albumType":"album","coverArt":null,"releaseDate":null,"duration":230,"label":null,"fingerprint":null,"amId":null,"fileSize":null,"addedAt":1690000000000,"inLibrary":false},"suggestion":null},
+		 {"position":1,"familiar":false,"confidence":0.62,"reason":{"kind":"novel","via":"collaborative","seedArtist":"Slowdive","fit":0.62},"media":null,
+		  "suggestion":{"recordingId":"r2","title":"Only Shallow","artist":"my bloody valentine","album":"Loveless","albumId":null,"coverArt":"/api/v1/art/release/x/250","durationMs":257000,"releasedAt":689644800000}}
+		]}
+		"""
+		let mix = try decoder().decode(MixDetail.self, from: Data(json.utf8))
+		#expect(mix.label.kind == .genre)
+		#expect(mix.tracks.count == 2)
+		#expect(mix.tracks[0].media?.id == "med")
+		#expect(mix.tracks[0].inLibrary == false)
+		#expect(mix.tracks[0].reason.isFamiliar)
+		#expect(mix.tracks[0].reason.plays == 12)
+		#expect(mix.tracks[1].suggestion?.recordingId == "r2")
+		#expect(mix.tracks[1].reason.via == "collaborative")
+		#expect(mix.tracks[1].reason.seedArtist == "Slowdive")
+	}
+
+	@Test("Mix list and settings decode")
+	func mixListDecoding() throws {
+		let list = try decoder().decode(MixList.self, from: Data(#"{"mixes":[],"refreshing":true,"refreshedAt":null,"failed":false}"#.utf8))
+		#expect(list.refreshing)
+		#expect(list.refreshedAt == nil)
+		let settings = try decoder().decode(RecommendationSettings.self, from: Data(#"{"enabled":true,"available":true,"updatedAt":null}"#.utf8))
+		#expect(settings.enabled && settings.available)
+	}
 }
