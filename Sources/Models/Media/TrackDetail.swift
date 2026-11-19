@@ -28,7 +28,11 @@ public struct TrackDetail: Codable, Sendable, Hashable {
 	/// Only present on `Track.get` responses. Also check ``MediaInfo/inLibrary`` on ``info`` before requesting.
 	public let requested: Bool?
 
-	public init(info: MediaInfo, albumMbid: String?, searchFallback: Bool? = nil, releaseDatePrecision: ReleaseDatePrecision? = nil, released: Bool? = nil, subscribed: Bool? = nil, requested: Bool? = nil) {
+	/// The ID of the requesting user's own copy of this track (`Library.track(id:)`), matched like
+	/// ``MediaInfo/inLibrary``; `nil` when they don't have it. Only present on `Track.get` responses.
+	public let libraryId: String?
+
+	public init(info: MediaInfo, albumMbid: String?, searchFallback: Bool? = nil, releaseDatePrecision: ReleaseDatePrecision? = nil, released: Bool? = nil, subscribed: Bool? = nil, requested: Bool? = nil, libraryId: String? = nil) {
 		self.info = info
 		self.albumMbid = albumMbid
 		self.searchFallback = searchFallback
@@ -36,6 +40,7 @@ public struct TrackDetail: Codable, Sendable, Hashable {
 		self.released = released
 		self.subscribed = subscribed
 		self.requested = requested
+		self.libraryId = libraryId
 	}
 
 	public init(from decoder: Decoder) throws {
@@ -47,6 +52,7 @@ public struct TrackDetail: Codable, Sendable, Hashable {
 		self.released = try container.decodeIfPresent(Bool.self, forKey: .released)
 		self.subscribed = try container.decodeIfPresent(Bool.self, forKey: .subscribed)
 		self.requested = try container.decodeIfPresent(Bool.self, forKey: .requested)
+		self.libraryId = try container.decodeIfPresent(String.self, forKey: .libraryId)
 	}
 
 	public func encode(to encoder: Encoder) throws {
@@ -58,9 +64,10 @@ public struct TrackDetail: Codable, Sendable, Hashable {
 		try container.encodeIfPresent(released, forKey: .released)
 		try container.encodeIfPresent(subscribed, forKey: .subscribed)
 		try container.encodeIfPresent(requested, forKey: .requested)
+		try container.encodeIfPresent(libraryId, forKey: .libraryId)
 	}
 
 	private enum CodingKeys: String, CodingKey {
-		case albumMbid, searchFallback, releaseDatePrecision, released, subscribed, requested
+		case albumMbid, searchFallback, releaseDatePrecision, released, subscribed, requested, libraryId
 	}
 }

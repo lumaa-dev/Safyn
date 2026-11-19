@@ -18,7 +18,7 @@ public struct InsightsSettings: Codable, Sendable, Hashable {
 	/// Minutes to add to UTC to reach the user's local time; decides where their day, week, and year boundaries fall.
 	public let tzOffsetMinutes: Int
 
-	/// Plays are scrobbled to Last.fm, so a client keeps reporting them (`Insights.ingestEvents`) even with the history
+	/// Plays are scrobbled to ListenBrainz, so a client keeps reporting them (`Insights.ingestEvents`) even with the history
 	/// off. Only sent by `Insights.settings()`; `nil` from older servers and from the update.
 	public let scrobbling: Bool?
 

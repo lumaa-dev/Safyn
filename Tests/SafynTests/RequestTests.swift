@@ -51,6 +51,14 @@ struct RequestTests {
 		#expect(!requests.contains { $0.status == .completed || $0.status == .failed })
 	}
 
+	@Test("Listing download requests by type and requester")
+	func allByTypeAndUser() async throws {
+		let server = try await authenticatedServer()
+		let requesters: [RequestRequester] = try await server.send(Request.requesters)
+		let albums: [NafynRequest] = try await server.send(Request.all(type: .album, user: requesters.first?.id))
+		#expect(albums.allSatisfy { $0.type == .album })
+	}
+
 	@Test("Cancelling a request")
 	func cancel() async throws {
 		let server = try await authenticatedServer()

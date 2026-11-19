@@ -39,9 +39,9 @@ public enum User: NafynEndpoint {
 	/// Returns ``NafynUser``.
 	/// - Parameters:
 	///   - displayName: 1-20 characters.
-	///   - lastFm: Up to 50 characters. Use `.clear` to unlink, `.value(_:)` to set, or leave `.unset` to not change it.
+	///   - listenBrainz: Up to 50 characters. Use `.clear` to unlink, `.value(_:)` to set, or leave `.unset` to not change it.
 	///   - discogs: Up to 50 characters. Use `.clear` to unlink, `.value(_:)` to set, or leave `.unset` to not change it.
-	case updateProfile(displayName: String? = nil, lastFm: Patchable<String> = .unset, discogs: Patchable<String> = .unset)
+	case updateProfile(displayName: String? = nil, listenBrainz: Patchable<String> = .unset, discogs: Patchable<String> = .unset)
 
 	/// List the currently authenticated user's own API tokens (app passwords, currently used for
 	/// Subsonic auth). The token value itself is never returned here — only at creation time.
@@ -241,34 +241,35 @@ public enum User: NafynEndpoint {
 	/// - Parameter password: The account's current password, or one of its API tokens.
 	case deleteAccount(password: String)
 
-	/// The user's Last.fm connection (scrobbling).
+	/// The user's ListenBrainz connection (scrobbling).
 	///
-	/// Returns ``LastfmConnection``.
-	case lastfm
+	/// Returns ``ListenBrainzConnection``.
+	case listenBrainz
 
-	/// Start connecting a Last.fm account: the last.fm page to open (in an `ASWebAuthenticationSession` with
-	/// `client: .app`, whose callback is `nafyn://lastfm?status=connected|error`). The link is valid for 10 minutes.
-	/// The server answers 503 when Last.fm isn't configured on the instance.
+	/// Connect a ListenBrainz account with its user token (from listenbrainz.org/settings). The server checks the
+	/// token with ListenBrainz, keeps it and turns scrobbling on; connecting again replaces the account. A 400 means
+	/// ListenBrainz doesn't accept the token, a 502 that ListenBrainz couldn't be reached.
 	///
-	/// Returns ``LastfmConnectResponse``.
-	case connectLastfm(client: LastfmClient = .app)
+	/// Returns ``ListenBrainzConnection``.
+	/// - Parameter token: The ListenBrainz user token.
+	case connectListenBrainz(token: String)
 
-	/// Pause or resume scrobbling to the connected Last.fm account (404 when none is connected).
+	/// Pause or resume scrobbling to the connected ListenBrainz account (404 when none is connected).
 	///
-	/// Returns ``LastfmConnection``.
-	case updateLastfm(scrobbling: Bool)
+	/// Returns ``ListenBrainzConnection``.
+	case updateListenBrainz(scrobbling: Bool)
 
-	/// Disconnect the Last.fm account: Nafyn forgets its session key.
+	/// Disconnect the ListenBrainz account: Nafyn forgets its token.
 	///
 	/// Returns ``RemovedResponse``.
-	case disconnectLastfm
+	case disconnectListenBrainz
 
-	/// Tell Last.fm what the user just started playing, when scrobbling is on (fire-and-forget on the server). The
-	/// scrobble itself comes from the play event (`Insights.ingestEvents`).
+	/// Tell ListenBrainz what the user just started playing, when scrobbling is on (fire-and-forget on the server).
+	/// The listen itself comes from the play event (`Insights.ingestEvents`).
 	///
 	/// Returns nothing meaningful — send this with ``NafynServer/sendRaw(_:)``.
 	/// - Parameter mediaId: The Nafyn media ID of the track.
-	case lastfmNowPlaying(mediaId: String)
+	case listenBrainzNowPlaying(mediaId: String)
 
 	public var path: String {
 		switch self {
@@ -318,24 +319,22 @@ public enum User: NafynEndpoint {
 				return "/api/v1/user/webhooks/\(id)/test"
 			case .deleteAccount:
 				return "/api/v1/user/me"
-			case .lastfm, .updateLastfm, .disconnectLastfm:
-				return "/api/v1/user/lastfm"
-			case .connectLastfm:
-				return "/api/v1/user/lastfm/connect"
-			case .lastfmNowPlaying:
-				return "/api/v1/user/lastfm/now-playing"
+			case .listenBrainz, .connectListenBrainz, .updateListenBrainz, .disconnectListenBrainz:
+				return "/api/v1/user/listenbrainz"
+			case .listenBrainzNowPlaying:
+				return "/api/v1/user/listenbrainz/now-playing"
 		}
 	}
 
 	public var methods: [NafynServer.HTTPMethod] {
 		switch self {
-			case .avatar, .me, .apiTokens, .appearanceSettings, .sessions, .unitySettings, .passkeys, .exportAccountData, .playbackSettings, .devices, .webhooks, .lastfm:
+			case .avatar, .me, .apiTokens, .appearanceSettings, .sessions, .unitySettings, .passkeys, .exportAccountData, .playbackSettings, .devices, .webhooks, .listenBrainz:
 				return [.get]
-			case .deleteAvatar, .deleteApiToken, .deleteSession, .deletePasskey, .deleteDevice, .deleteWebhook, .deleteAccount, .disconnectLastfm:
+			case .deleteAvatar, .deleteApiToken, .deleteSession, .deletePasskey, .deleteDevice, .deleteWebhook, .deleteAccount, .disconnectListenBrainz:
 				return [.delete]
-			case .setAvatar, .createApiToken, .passkeyRegisterOptions, .registerPasskey, .registerDevice, .registerActivityToken, .createWebhook, .testWebhook, .connectLastfm, .lastfmNowPlaying:
+			case .setAvatar, .createApiToken, .passkeyRegisterOptions, .registerPasskey, .registerDevice, .registerActivityToken, .createWebhook, .testWebhook, .connectListenBrainz, .listenBrainzNowPlaying:
 				return [.post]
-			case .updateProfile, .updateAppearanceSettings, .updateUnitySettings, .updatePlaybackSettings, .updateWebhook, .updateLastfm:
+			case .updateProfile, .updateAppearanceSettings, .updateUnitySettings, .updatePlaybackSettings, .updateWebhook, .updateListenBrainz:
 				return [.patch]
 		}
 	}
@@ -352,8 +351,8 @@ public enum User: NafynEndpoint {
 
 	public var body: AnyEncodable? {
 		switch self {
-			case .updateProfile(let displayName, let lastFm, let discogs):
-				return AnyEncodable(UpdateMyProfileRequest(displayName: displayName, lastFm: lastFm, discogs: discogs))
+			case .updateProfile(let displayName, let listenBrainz, let discogs):
+				return AnyEncodable(UpdateMyProfileRequest(displayName: displayName, listenBrainz: listenBrainz, discogs: discogs))
 			case .createApiToken(let name):
 				return AnyEncodable(CreateApiTokenRequest(name: name))
 			case .updateAppearanceSettings(let showFileSize, let showDuration):
@@ -373,12 +372,12 @@ public enum User: NafynEndpoint {
 				return AnyEncodable(WebhookInput(name: name, url: url, format: format, events: events, enabled: enabled))
 			case .deleteAccount(let password):
 				return AnyEncodable(DeleteAccountRequest(password: password))
-			case .connectLastfm(let client):
-				return AnyEncodable(ConnectLastfmRequest(client: client))
-			case .updateLastfm(let scrobbling):
-				return AnyEncodable(UpdateLastfmRequest(scrobbling: scrobbling))
-			case .lastfmNowPlaying(let mediaId):
-				return AnyEncodable(LastfmNowPlayingRequest(mediaId: mediaId))
+			case .connectListenBrainz(let token):
+				return AnyEncodable(ConnectListenBrainzRequest(token: token))
+			case .updateListenBrainz(let scrobbling):
+				return AnyEncodable(UpdateListenBrainzRequest(scrobbling: scrobbling))
+			case .listenBrainzNowPlaying(let mediaId):
+				return AnyEncodable(ListenBrainzNowPlayingRequest(mediaId: mediaId))
 			default:
 				return nil
 		}
@@ -398,15 +397,15 @@ struct DeleteAccountRequest: Encodable, Sendable {
 	let password: String
 }
 
-struct ConnectLastfmRequest: Encodable, Sendable {
-	let client: LastfmClient
+struct ConnectListenBrainzRequest: Encodable, Sendable {
+	let token: String
 }
 
-struct UpdateLastfmRequest: Encodable, Sendable {
+struct UpdateListenBrainzRequest: Encodable, Sendable {
 	let scrobbling: Bool
 }
 
-struct LastfmNowPlayingRequest: Encodable, Sendable {
+struct ListenBrainzNowPlayingRequest: Encodable, Sendable {
 	let mediaId: String
 }
 
@@ -467,20 +466,20 @@ struct UpdatePlaybackSettingsRequest: Encodable, Sendable {
 
 struct UpdateMyProfileRequest: Encodable, Sendable {
 	let displayName: String?
-	let lastFm: Patchable<String>
+	let listenBrainz: Patchable<String>
 	let discogs: Patchable<String>
 
 	private enum CodingKeys: String, CodingKey {
-		case displayName, lastFm, discogs
+		case displayName, listenBrainz, discogs
 	}
 
 	func encode(to encoder: Encoder) throws {
 		var container = encoder.container(keyedBy: CodingKeys.self)
 		try container.encodeIfPresent(displayName, forKey: .displayName)
-		switch lastFm {
+		switch listenBrainz {
 			case .unset: break
-			case .clear: try container.encodeNil(forKey: .lastFm)
-			case .value(let value): try container.encode(value, forKey: .lastFm)
+			case .clear: try container.encodeNil(forKey: .listenBrainz)
+			case .value(let value): try container.encode(value, forKey: .listenBrainz)
 		}
 		switch discogs {
 			case .unset: break

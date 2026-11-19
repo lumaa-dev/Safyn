@@ -21,10 +21,10 @@ public enum Users: NafynEndpoint {
 	/// - Parameters:
 	///   - id: Target user ID.
 	///   - displayName: 1-20 characters.
-	///   - lastFm: Up to 50 characters. Use `.clear` to unlink, `.value(_:)` to set, or leave `.unset` to not change it.
+	///   - listenBrainz: Up to 50 characters. Use `.clear` to unlink, `.value(_:)` to set, or leave `.unset` to not change it.
 	///   - discogs: Up to 50 characters. Use `.clear` to unlink, `.value(_:)` to set, or leave `.unset` to not change it.
 	///   - permissions: The new permission bitfield, replacing the target's current one entirely.
-	case update(id: String, displayName: String? = nil, username: String? = nil, lastFm: Patchable<String> = .unset, discogs: Patchable<String> = .unset, permissions: Permissions? = nil)
+	case update(id: String, displayName: String? = nil, username: String? = nil, listenBrainz: Patchable<String> = .unset, discogs: Patchable<String> = .unset, permissions: Permissions? = nil)
 
 	/// Upload/replace another user's avatar. Requires `admin`, or `manageAccounts` against a non-privileged target.
 	///
@@ -45,7 +45,7 @@ public enum Users: NafynEndpoint {
 	///   - offset: Pagination offset. Defaults to `0` server-side when omitted.
 	case all(limit: Int? = nil, offset: Int? = nil)
 
-	/// Get the public profile of a user, by username: display name, avatar version, Last.fm / Discogs
+	/// Get the public profile of a user, by username: display name, avatar version, ListenBrainz / Discogs
 	/// handles, the number of tracks in their library and their public playlists.
 	///
 	/// No authentication needed. Returns ``UserProfile``. A 400 means not a valid username; a 404, no such user.
@@ -96,8 +96,8 @@ public enum Users: NafynEndpoint {
 
 	public var body: AnyEncodable? {
 		switch self {
-			case .update(_, let displayName, let username, let lastFm, let discogs, let permissions):
-				return AnyEncodable(UpdateUserRequest(displayName: displayName, username: username, lastFm: lastFm, discogs: discogs, permissions: permissions))
+			case .update(_, let displayName, let username, let listenBrainz, let discogs, let permissions):
+				return AnyEncodable(UpdateUserRequest(displayName: displayName, username: username, listenBrainz: listenBrainz, discogs: discogs, permissions: permissions))
 			default:
 				return nil
 		}
@@ -116,22 +116,22 @@ public enum Users: NafynEndpoint {
 struct UpdateUserRequest: Encodable, Sendable {
 	let displayName: String?
 	let username: String?
-	let lastFm: Patchable<String>
+	let listenBrainz: Patchable<String>
 	let discogs: Patchable<String>
 	let permissions: Permissions?
 
 	private enum CodingKeys: String, CodingKey {
-		case displayName, username, lastFm, discogs, permissions
+		case displayName, username, listenBrainz, discogs, permissions
 	}
 
 	func encode(to encoder: Encoder) throws {
 		var container = encoder.container(keyedBy: CodingKeys.self)
 		try container.encodeIfPresent(displayName, forKey: .displayName)
 		try container.encodeIfPresent(username, forKey: .username)
-		switch lastFm {
+		switch listenBrainz {
 			case .unset: break
-			case .clear: try container.encodeNil(forKey: .lastFm)
-			case .value(let value): try container.encode(value, forKey: .lastFm)
+			case .clear: try container.encodeNil(forKey: .listenBrainz)
+			case .value(let value): try container.encode(value, forKey: .listenBrainz)
 		}
 		switch discogs {
 			case .unset: break

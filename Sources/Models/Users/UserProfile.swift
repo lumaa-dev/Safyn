@@ -46,8 +46,8 @@ public struct UserProfile: Codable, Sendable, Hashable {
 	/// The avatar version token. The image is at `User.avatar(id:)`.
 	public let avatar: String?
 
-	/// The user's Last.fm handle, if linked.
-	public let lastFm: String?
+	/// The user's ListenBrainz handle, if linked.
+	public let listenBrainz: String?
 
 	/// The user's Discogs handle, if linked.
 	public let discogs: String?
@@ -58,12 +58,12 @@ public struct UserProfile: Codable, Sendable, Hashable {
 	/// The user's public playlists.
 	public let playlists: [PlaylistSummary]
 
-	public init(id: String, username: String, displayName: String? = nil, avatar: String? = nil, lastFm: String? = nil, discogs: String? = nil, trackCount: Int, playlists: [PlaylistSummary] = []) {
+	public init(id: String, username: String, displayName: String? = nil, avatar: String? = nil, listenBrainz: String? = nil, discogs: String? = nil, trackCount: Int, playlists: [PlaylistSummary] = []) {
 		self.id = id
 		self.username = username
 		self.displayName = displayName
 		self.avatar = avatar
-		self.lastFm = lastFm
+		self.listenBrainz = listenBrainz
 		self.discogs = discogs
 		self.trackCount = trackCount
 		self.playlists = playlists

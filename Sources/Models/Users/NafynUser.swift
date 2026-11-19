@@ -19,19 +19,19 @@ public struct NafynUser: Codable, Sendable, Hashable {
 	/// The user's granted permissions.
 	public let permissions: Permissions
 
-	/// The user's linked Last.fm username, if any.
-	public let lastFm: String?
+	/// The user's linked ListenBrainz username, if any.
+	public let listenBrainz: String?
 
 	/// The user's linked Discogs username, if any.
 	public let discogs: String?
 
-	public init(id: String, username: String, displayName: String? = nil, avatar: String? = nil, permissions: Permissions = [], lastFm: String? = nil, discogs: String? = nil) {
+	public init(id: String, username: String, displayName: String? = nil, avatar: String? = nil, permissions: Permissions = [], listenBrainz: String? = nil, discogs: String? = nil) {
 		self.id = id
 		self.username = username
 		self.displayName = displayName
 		self.avatar = avatar
 		self.permissions = permissions
-		self.lastFm = lastFm
+		self.listenBrainz = listenBrainz
 		self.discogs = discogs
 	}
 }

@@ -17,7 +17,7 @@ struct UserTests {
 	@Test("Updating the authenticated user's own profile")
 	func updateProfile() async throws {
 		let server = try await authenticatedServer()
-		let updated: NafynUser = try await server.send(User.updateProfile(displayName: "Safyn Tester", lastFm: .value("safyn-tester")))
+		let updated: NafynUser = try await server.send(User.updateProfile(displayName: "Safyn Tester", listenBrainz: .value("safyn-tester")))
 		#expect(updated.displayName == "Safyn Tester")
 	}
 
@@ -130,36 +130,37 @@ struct UserSettingsTests {
 		#expect(!data.isEmpty)
 	}
 
-	@Test("Reading the Last.fm connection")
-	func lastfm() async throws {
+	@Test("Reading the ListenBrainz connection")
+	func listenBrainz() async throws {
 		let server = try await authenticatedServer()
-		let connection: LastfmConnection = try await server.send(User.lastfm)
+		let connection: ListenBrainzConnection = try await server.send(User.listenBrainz)
 		#expect(connection.scrobbling == false || connection.isConnected)
 	}
 
-	@Test("Starting a Last.fm connection")
-	func connectLastfm() async throws {
+	@Test("Connecting ListenBrainz with a token it refuses")
+	func connectListenBrainz() async throws {
 		let server = try await authenticatedServer()
-		let link: LastfmConnectResponse = try await server.send(User.connectLastfm(client: .app))
-		#expect(link.url.host() == "www.last.fm")
+		await #expect(throws: (any Error).self) {
+			let _: ListenBrainzConnection = try await server.send(User.connectListenBrainz(token: "not-a-listenbrainz-token"))
+		}
 	}
 
-	@Test("Pausing Last.fm scrobbling")
-	func updateLastfm() async throws {
+	@Test("Pausing ListenBrainz scrobbling")
+	func updateListenBrainz() async throws {
 		let server = try await authenticatedServer()
-		let connection: LastfmConnection = try await server.send(User.updateLastfm(scrobbling: false))
+		let connection: ListenBrainzConnection = try await server.send(User.updateListenBrainz(scrobbling: false))
 		#expect(connection.scrobbling == false)
 	}
 
-	@Test("Disconnecting Last.fm")
-	func disconnectLastfm() async throws {
+	@Test("Disconnecting ListenBrainz")
+	func disconnectListenBrainz() async throws {
 		let server = try await authenticatedServer()
-		let _: RemovedResponse = try await server.send(User.disconnectLastfm)
+		let _: RemovedResponse = try await server.send(User.disconnectListenBrainz)
 	}
 
-	@Test("Reporting Last.fm now playing")
-	func lastfmNowPlaying() async throws {
+	@Test("Reporting ListenBrainz now playing")
+	func listenBrainzNowPlaying() async throws {
 		let server = try await authenticatedServer()
-		_ = try await server.sendRaw(User.lastfmNowPlaying(mediaId: "some-media-id"))
+		_ = try await server.sendRaw(User.listenBrainzNowPlaying(mediaId: "some-media-id"))
 	}
 }

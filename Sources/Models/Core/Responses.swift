@@ -282,11 +282,11 @@ public struct IngestPlayEventsResponse: Codable, Sendable, Hashable {
 	/// `false` means the batch was not stored in the listening history.
 	public let historyEnabled: Bool
 
-	/// The plays are scrobbled to Last.fm. A client stops sending events only when this and ``historyEnabled`` are
-	/// both `false`. `nil` from servers older than Last.fm scrobbling.
+	/// The plays are scrobbled to ListenBrainz. A client stops sending events only when this and ``historyEnabled`` are
+	/// both `false`. `nil` from servers older than server-side scrobbling.
 	public let scrobbling: Bool?
 
-	/// Whether the client should keep reporting plays: the history or Last.fm still wants them.
+	/// Whether the client should keep reporting plays: the history or ListenBrainz still wants them.
 	public var wantsEvents: Bool { self.historyEnabled || self.scrobbling == true }
 
 	public init(accepted: Int, rejected: Int, historyEnabled: Bool, scrobbling: Bool? = nil) {

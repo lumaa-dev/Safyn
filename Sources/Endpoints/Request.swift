@@ -50,7 +50,16 @@ public enum Request: NafynEndpoint {
 	///   - failed: Include failed requests; `false` leaves them out. Defaults to `true` server-side.
 	///   - waiting: Include requests waiting for a manager to accept them; `false` leaves them out. Defaults to `true` server-side.
 	///   - processing: Include requests being worked on (searching, downloading, processing); `false` leaves them out. Defaults to `true` server-side.
-	case all(limit: Int? = nil, offset: Int? = nil, succeeded: Bool? = nil, failed: Bool? = nil, waiting: Bool? = nil, processing: Bool? = nil)
+	///   - type: Only album requests or only track requests; `nil` lists both.
+	///   - user: Only the requests of this account (a user id, see ``requesters``). For a user without `manageRequests`
+	///     any id but their own lists nothing.
+	case all(limit: Int? = nil, offset: Int? = nil, succeeded: Bool? = nil, failed: Bool? = nil, waiting: Bool? = nil, processing: Bool? = nil, type: RequestKind? = nil, user: String? = nil)
+
+	/// The accounts that made at least one listed request, sorted by name: the choices of ``all(limit:offset:succeeded:failed:waiting:processing:type:user:)``'s
+	/// `user` filter. Requires `manageRequests` (403 otherwise).
+	///
+	/// Returns `[`` RequestRequester``]`.
+	case requesters
 
 	public var path: String {
 		switch self {
@@ -64,6 +73,8 @@ public enum Request: NafynEndpoint {
 				return "/api/v1/request/status"
 			case .all:
 				return "/api/v1/requests"
+			case .requesters:
+				return "/api/v1/requests/requesters"
 		}
 	}
 
@@ -71,7 +82,7 @@ public enum Request: NafynEndpoint {
 		switch self {
 			case .create, .updateStatus, .cancel:
 				return [.post]
-			case .get, .all:
+			case .get, .all, .requesters:
 				return [.get]
 			case .delete:
 				return [.delete]
@@ -80,7 +91,7 @@ public enum Request: NafynEndpoint {
 
 	public var queries: [URLQueryItem] {
 		switch self {
-			case .all(let limit, let offset, let succeeded, let failed, let waiting, let processing):
+			case .all(let limit, let offset, let succeeded, let failed, let waiting, let processing, let type, let user):
 				var items: [URLQueryItem] = []
 				if let limit {
 					items.append(URLQueryItem(name: "limit", value: String(limit)))
@@ -99,6 +110,12 @@ public enum Request: NafynEndpoint {
 				}
 				if let processing {
 					items.append(URLQueryItem(name: "processing", value: String(processing)))
+				}
+				if let type {
+					items.append(URLQueryItem(name: "type", value: type.rawValue))
+				}
+				if let user {
+					items.append(URLQueryItem(name: "user", value: user))
 				}
 				return items
 			default:

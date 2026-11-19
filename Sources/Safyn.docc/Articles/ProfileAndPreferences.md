@@ -22,8 +22,8 @@ Use ``Permissions/has(_:)`` rather than `contains(_:)`: `admin` implicitly grant
 
 ## Update your profile
 
-``User/updateProfile(displayName:lastFm:discogs:)`` only changes what you pass. `displayName` is a plain
-optional (omit it to leave it alone). `lastFm` and `discogs` are *clearable*, so they use ``Patchable``,
+``User/updateProfile(displayName:listenBrainz:discogs:)`` only changes what you pass. `displayName` is a plain
+optional (omit it to leave it alone). `listenBrainz` and `discogs` are *clearable*, so they use ``Patchable``,
 which has three states:
 
 | Value | Effect |
@@ -34,7 +34,7 @@ which has three states:
 
 ```swift
 let updated: NafynUser = try await server.send(
-    User.updateProfile(displayName: "Alex", lastFm: .value("alex-fm"), discogs: .clear)
+    User.updateProfile(displayName: "Alex", listenBrainz: .value("alex-lb"), discogs: .clear)
 )
 ```
 

@@ -83,7 +83,7 @@ public struct ReleaseCategory: Codable, Sendable, Hashable, Identifiable {
 	}
 }
 
-/// Full artist details: name, Last.fm bio/image (if configured server-side), and discography, with
+/// Full artist details: name, picture and bio (TheAudioDB), listener count (ListenBrainz), and discography, with
 /// per-album library status for the requesting user.
 ///
 /// Returned by `Artist.get(aid:)`.
@@ -94,13 +94,17 @@ public struct ArtistDetail: Codable, Sendable, Hashable {
 	/// The artist's name.
 	public let name: String
 
-	/// An image URL from Last.fm, if known. Often `nil` — Last.fm stopped serving real per-artist photos years ago.
+	/// The artist's picture URL (TheAudioDB, else Wikimedia Commons), if known.
 	public let image: String?
 
-	/// A biography from Last.fm, if known.
+	/// The artist's logo URL (TheAudioDB): a transparent, horizontal PNG (800 x 310), if known. `nil` from a server
+	/// older than the logo.
+	public let logo: String?
+
+	/// A biography from TheAudioDB, in English, if known.
 	public let bio: String?
 
-	/// The Last.fm listener count, if known.
+	/// How many people listened to the artist on ListenBrainz, if known.
 	public let listeners: Double?
 
 	/// The artist's discography from MusicBrainz, with per-album library status for the requesting user.
@@ -113,13 +117,14 @@ public struct ArtistDetail: Codable, Sendable, Hashable {
 	public let categories: [ReleaseCategory]
 
 	private enum CodingKeys: String, CodingKey {
-		case id, name, image, bio, listeners, albums, categories
+		case id, name, image, logo, bio, listeners, albums, categories
 	}
 
-	public init(id: String, name: String, image: String?, bio: String?, listeners: Double?, albums: [MediaInfo], categories: [ReleaseCategory] = []) {
+	public init(id: String, name: String, image: String?, logo: String? = nil, bio: String?, listeners: Double?, albums: [MediaInfo], categories: [ReleaseCategory] = []) {
 		self.id = id
 		self.name = name
 		self.image = image
+		self.logo = logo
 		self.bio = bio
 		self.listeners = listeners
 		self.albums = albums
@@ -131,6 +136,7 @@ public struct ArtistDetail: Codable, Sendable, Hashable {
 		id = try container.decode(String.self, forKey: .id)
 		name = try container.decode(String.self, forKey: .name)
 		image = try container.decodeIfPresent(String.self, forKey: .image)
+		logo = try container.decodeIfPresent(String.self, forKey: .logo)
 		bio = try container.decodeIfPresent(String.self, forKey: .bio)
 		listeners = try container.decodeIfPresent(Double.self, forKey: .listeners)
 		albums = try container.decode([MediaInfo].self, forKey: .albums)

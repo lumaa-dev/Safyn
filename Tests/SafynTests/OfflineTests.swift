@@ -118,6 +118,13 @@ struct OfflineTests {
 	func artistWithoutCategories() throws {
 		let artist = try decoder().decode(ArtistDetail.self, from: Data(#"{"id":"w1","name":"Weezer","image":null,"bio":null,"listeners":null,"albums":[]}"#.utf8))
 		#expect(artist.categories.isEmpty)
+		#expect(artist.logo == nil)
+	}
+
+	@Test("An artist's logo decodes")
+	func artistLogo() throws {
+		let artist = try decoder().decode(ArtistDetail.self, from: Data(#"{"id":"w1","name":"Weezer","image":null,"logo":"https://r2.theaudiodb.com/logo.png","bio":null,"listeners":null,"albums":[]}"#.utf8))
+		#expect(artist.logo == "https://r2.theaudiodb.com/logo.png")
 	}
 
 	// MARK: - Album
@@ -246,6 +253,7 @@ struct OfflineTests {
 		#expect(detail.info.inLibrary == true)
 		#expect(detail.albumMbid == "a1")
 		#expect(detail.requested == nil)
+		#expect(detail.libraryId == nil)
 	}
 
 	@Test("Track.get response decodes release and request state")
@@ -253,9 +261,10 @@ struct OfflineTests {
 		let json = """
 		{"id":"t1","title":"X","artist":"Y","album":null,"type":"track","coverArt":null,"releaseDate":null,
 		 "inLibrary":false,"duration":1,"label":null,"albumMbid":null,
-		 "releaseDatePrecision":"month","released":false,"subscribed":true,"requested":false}
+		 "releaseDatePrecision":"month","released":false,"subscribed":true,"requested":false,"libraryId":"m42"}
 		"""
 		let detail = try decoder().decode(TrackDetail.self, from: Data(json.utf8))
+		#expect(detail.libraryId == "m42")
 		#expect(detail.releaseDatePrecision == .month)
 		#expect(detail.released == false)
 		#expect(detail.subscribed == true)
@@ -344,6 +353,19 @@ struct OfflineTests {
 		let sent = query(Request.all(limit: 5, offset: 10, succeeded: false, failed: true, waiting: false, processing: true))
 		#expect(sent == ["limit": "5", "offset": "10", "succeeded": "false", "failed": "true", "waiting": "false", "processing": "true"])
 		#expect(query(Request.all(succeeded: false)) == ["succeeded": "false"])
+		#expect(query(Request.all(type: .album, user: "u1")) == ["type": "album", "user": "u1"])
+		#expect(query(Request.all(type: .track)) == ["type": "track"])
+	}
+
+	@Test("Request.requesters path and decoding")
+	func requestersShape() throws {
+		#expect(Request.requesters.path == "/api/v1/requests/requesters")
+		#expect(Request.requesters.methods == [.get])
+		#expect(Request.requesters.queries.isEmpty)
+		let json = #"[{"id":"u1","username":"lumaa","displayName":"Lumaa","avatar":null},{"id":"u2","username":"bob","displayName":null,"avatar":"a.png"}]"#
+		let users = try decoder().decode([RequestRequester].self, from: Data(json.utf8))
+		#expect(users.map(\.name) == ["Lumaa", "bob"])
+		#expect(users[1].avatar == "a.png")
 	}
 
 	@Test("Download limit endpoint uses the right path, method and body")
@@ -544,10 +566,10 @@ struct OfflineTests {
 		#expect(try decoder().decode(PinResponse.self, from: Data(#"{"pinned":true}"#.utf8)).pinned == true)
 
 		let profile = try decoder().decode(UserProfile.self, from: Data(#"""
-		{"id":"u","username":"lumaa","displayName":null,"avatar":"v1","lastFm":"l","trackCount":42,
+		{"id":"u","username":"lumaa","displayName":null,"avatar":"v1","listenBrainz":"l","trackCount":42,
 		 "playlists":[{"id":"p","title":"Mix","description":null,"trackCount":3,"updatedAt":1700000000000}]}
 		"""#.utf8))
-		#expect(profile.trackCount == 42 && profile.discogs == nil && profile.playlists.first?.trackCount == 3)
+		#expect(profile.trackCount == 42 && profile.listenBrainz == "l" && profile.discogs == nil && profile.playlists.first?.trackCount == 3)
 	}
 
 	// MARK: - Request cancellation
@@ -617,30 +639,28 @@ struct OfflineTests {
 		#expect(try decoder().decode(ImportItem.self, from: Data(old.utf8)).kind == nil)
 	}
 
-	// MARK: - Last.fm
+	// MARK: - ListenBrainz
 
-	@Test("Last.fm endpoints: paths, methods, bodies")
-	func lastfmShape() throws {
-		#expect(User.lastfm.path == "/api/v1/user/lastfm")
-		#expect(User.lastfm.methods == [.get])
-		#expect(User.updateLastfm(scrobbling: false).methods == [.patch])
-		#expect(User.disconnectLastfm.methods == [.delete])
-		#expect(User.connectLastfm().path == "/api/v1/user/lastfm/connect")
-		#expect(User.connectLastfm().methods == [.post])
-		#expect(User.lastfmNowPlaying(mediaId: "m1").path == "/api/v1/user/lastfm/now-playing")
-		#expect(try bodyJSON(User.connectLastfm())["client"] as? String == "app")
-		#expect(try bodyJSON(User.updateLastfm(scrobbling: false))["scrobbling"] as? Bool == false)
-		#expect(try bodyJSON(User.lastfmNowPlaying(mediaId: "m1"))["mediaId"] as? String == "m1")
+	@Test("ListenBrainz endpoints: paths, methods, bodies")
+	func listenBrainzShape() throws {
+		#expect(User.listenBrainz.path == "/api/v1/user/listenbrainz")
+		#expect(User.listenBrainz.methods == [.get])
+		#expect(User.connectListenBrainz(token: "t").path == "/api/v1/user/listenbrainz")
+		#expect(User.connectListenBrainz(token: "t").methods == [.post])
+		#expect(User.updateListenBrainz(scrobbling: false).methods == [.patch])
+		#expect(User.disconnectListenBrainz.methods == [.delete])
+		#expect(User.listenBrainzNowPlaying(mediaId: "m1").path == "/api/v1/user/listenbrainz/now-playing")
+		#expect(try bodyJSON(User.connectListenBrainz(token: "t"))["token"] as? String == "t")
+		#expect(try bodyJSON(User.updateListenBrainz(scrobbling: false))["scrobbling"] as? Bool == false)
+		#expect(try bodyJSON(User.listenBrainzNowPlaying(mediaId: "m1"))["mediaId"] as? String == "m1")
 	}
 
-	@Test("Last.fm connection, connect link, and scrobbling flags decode")
-	func lastfmDecoding() throws {
-		let connection = try decoder().decode(LastfmConnection.self, from: Data(#"{"available":true,"username":"rj","scrobbling":true}"#.utf8))
+	@Test("ListenBrainz connection and scrobbling flags decode")
+	func listenBrainzDecoding() throws {
+		let connection = try decoder().decode(ListenBrainzConnection.self, from: Data(#"{"username":"rj","scrobbling":true}"#.utf8))
 		#expect(connection.isConnected)
-		let none = try decoder().decode(LastfmConnection.self, from: Data(#"{"available":false,"username":null,"scrobbling":false}"#.utf8))
+		let none = try decoder().decode(ListenBrainzConnection.self, from: Data(#"{"username":null,"scrobbling":false}"#.utf8))
 		#expect(!none.isConnected)
-		let link = try decoder().decode(LastfmConnectResponse.self, from: Data(#"{"url":"https://www.last.fm/api/auth/?api_key=k"}"#.utf8))
-		#expect(link.url.host() == "www.last.fm")
 		let ingest = try decoder().decode(IngestPlayEventsResponse.self, from: Data(#"{"accepted":0,"rejected":2,"historyEnabled":false,"scrobbling":true}"#.utf8))
 		#expect(ingest.wantsEvents)
 		let oldIngest = try decoder().decode(IngestPlayEventsResponse.self, from: Data(#"{"accepted":0,"rejected":2,"historyEnabled":false}"#.utf8))
